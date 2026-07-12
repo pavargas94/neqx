@@ -1,6 +1,5 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { setCirugia, setField } from '../../store/formSlice'
-import { CIRUJANOS } from '../../data/constants'
 
 export default function ProcedureSection() {
   const dispatch = useDispatch()

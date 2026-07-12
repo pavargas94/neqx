@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
+import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -21,6 +22,7 @@ export function isFirebaseConfigured() {
 
 let app = null
 let auth = null
+let db = null
 
 export function getFirebaseAuth() {
   if (!isFirebaseConfigured()) {
@@ -35,4 +37,23 @@ export function getFirebaseAuth() {
   }
 
   return auth
+}
+
+export function getFirestoreDb() {
+  if (!isFirebaseConfigured()) {
+    throw new Error(
+      'Firebase no está configurado. Crea un archivo .env.local con las variables VITE_FIREBASE_*.',
+    )
+  }
+
+  if (!app) {
+    app = initializeApp(firebaseConfig)
+    auth = getAuth(app)
+  }
+
+  if (!db) {
+    db = getFirestore(app)
+  }
+
+  return db
 }

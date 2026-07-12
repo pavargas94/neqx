@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { setUser } from './store/authSlice'
+import { fetchFormConstants } from './store/constantsSlice'
 import { authService } from './services/authService'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
@@ -10,6 +11,7 @@ import DashboardPage from './pages/DashboardPage'
 function AppRoutes() {
   const dispatch = useDispatch()
   const { user, initialized } = useSelector((state) => state.auth)
+  const { loaded: constantsLoaded, loading: constantsLoading } = useSelector((state) => state.constants)
 
   useEffect(() => {
     const unsubscribe = authService.subscribeToAuthChanges((firebaseUser) => {
@@ -19,7 +21,13 @@ function AppRoutes() {
     return unsubscribe
   }, [dispatch])
 
-  if (!initialized) {
+  useEffect(() => {
+    if (user && !constantsLoaded && !constantsLoading) {
+      dispatch(fetchFormConstants())
+    }
+  }, [user, constantsLoaded, constantsLoading, dispatch])
+
+  if (!initialized || (user && !constantsLoaded)) {
     return (
       <div className="auth-loading">
         <p>Cargando NEQx…</p>

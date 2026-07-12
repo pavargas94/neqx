@@ -1,10 +1,10 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { setField, toggleMedicamento } from '../../store/formSlice'
-import { MEDICAMENTOS_LISTA } from '../../data/constants'
 
 export default function MedicationSection() {
   const dispatch = useDispatch()
   const medicamentos = useSelector(s => s.form.medicamentos)
+  const medicamentosLista = useSelector(s => s.constants.data.medicamentosLista)
   const chkMorfina = useSelector(s => s.form.chkMorfina)
   const dosMorfina = useSelector(s => s.form.dosMorfina)
   const chkHidromorfona = useSelector(s => s.form.chkHidromorfona)
@@ -21,7 +21,7 @@ export default function MedicationSection() {
       <h3>Medicamentos / Analgesia en Sala</h3>
       <div className="contenedor-meds">
         <div className="grid-meds">
-          {MEDICAMENTOS_LISTA.map(med => (
+          {medicamentosLista.map(med => (
             <label
               key={med.value}
               className="opcion-med"
