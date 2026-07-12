@@ -1,4 +1,17 @@
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { logout } from '../store/authSlice'
+
 export default function Header() {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const user = useSelector((state) => state.auth.user)
+
+  async function handleLogout() {
+    await dispatch(logout())
+    navigate('/login')
+  }
+
   return (
     <header className="app-header">
       <div className="brand-logos">
@@ -16,8 +29,18 @@ export default function Header() {
           </text>
         </svg>
       </div>
-      <div>
-        <span className="version-tag">PUNTO DE CONTROL v3.2.1</span>
+      <div className="header-actions">
+        {user && (
+          <span className="user-tag" title={user.email}>
+            {user.displayName || user.email}
+          </span>
+        )}
+        <span className="version-tag">PUNTO DE CONTROL v3.3.0</span>
+        {user && (
+          <button type="button" className="btn-logout" onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        )}
       </div>
     </header>
   )
