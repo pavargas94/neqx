@@ -1,6 +1,8 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout } from '../store/authSlice'
+import { isAdmin } from '../utils/roles'
+import AppNavbar from './AppNavbar'
 
 export default function Header() {
   const dispatch = useDispatch()
@@ -29,10 +31,14 @@ export default function Header() {
           </text>
         </svg>
       </div>
+
+      <AppNavbar />
+
       <div className="header-actions">
         {user && (
           <span className="user-tag" title={user.email}>
             {user.displayName || user.email}
+            {isAdmin(user) && <span className="role-badge">Admin</span>}
           </span>
         )}
         <span className="version-tag">PUNTO DE CONTROL v3.3.0</span>

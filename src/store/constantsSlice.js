@@ -8,6 +8,17 @@ export const fetchFormConstants = createAsyncThunk(
   async () => constantsService.fetchFormConstants(),
 )
 
+export const saveFormConstants = createAsyncThunk(
+  'constants/saveFormConstants',
+  async (data, { rejectWithValue }) => {
+    try {
+      return await constantsService.updateFormConstants(data)
+    } catch (error) {
+      return rejectWithValue(error.message || 'No se pudieron guardar los cambios.')
+    }
+  },
+)
+
 const constantsSlice = createSlice({
   name: 'constants',
   initialState: {
@@ -15,7 +26,10 @@ const constantsSlice = createSlice({
     source: 'local',
     loading: false,
     loaded: false,
+    saving: false,
     error: null,
+    saveError: null,
+    saveSuccess: false,
   },
   reducers: {
     resetConstants(state) {
@@ -23,7 +37,14 @@ const constantsSlice = createSlice({
       state.source = 'local'
       state.loading = false
       state.loaded = false
+      state.saving = false
       state.error = null
+      state.saveError = null
+      state.saveSuccess = false
+    },
+    clearSaveStatus(state) {
+      state.saveError = null
+      state.saveSuccess = false
     },
   },
   extraReducers: (builder) => {
@@ -46,15 +67,33 @@ const constantsSlice = createSlice({
         state.data = DEFAULT_CONSTANTS
         state.source = 'local'
       })
+      .addCase(saveFormConstants.pending, (state) => {
+        state.saving = true
+        state.saveError = null
+        state.saveSuccess = false
+      })
+      .addCase(saveFormConstants.fulfilled, (state, action) => {
+        state.data = action.payload
+        state.source = 'firestore'
+        state.saving = false
+        state.saveSuccess = true
+      })
+      .addCase(saveFormConstants.rejected, (state, action) => {
+        state.saving = false
+        state.saveError = action.payload
+      })
       .addCase(logout.fulfilled, (state) => {
         state.data = DEFAULT_CONSTANTS
         state.source = 'local'
         state.loading = false
         state.loaded = false
+        state.saving = false
         state.error = null
+        state.saveError = null
+        state.saveSuccess = false
       })
   },
 })
 
-export const { resetConstants } = constantsSlice.actions
+export const { resetConstants, clearSaveStatus } = constantsSlice.actions
 export default constantsSlice.reducer

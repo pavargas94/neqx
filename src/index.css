@@ -21,9 +21,105 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   padding: 12px 24px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   border-bottom: 3px solid #333333;
+}
+
+.app-navbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.navbar-link,
+.navbar-dropdown-toggle {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border-radius: 6px;
+  color: #424242;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.navbar-link:hover,
+.navbar-dropdown-toggle:hover,
+.navbar-dropdown.open .navbar-dropdown-toggle {
+  background: #eeeeee;
+}
+
+.navbar-link.active,
+.navbar-dropdown.active .navbar-dropdown-toggle {
+  background: #333333;
+  color: #f5f5f5;
+}
+
+.navbar-dropdown {
+  position: relative;
+}
+
+.navbar-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navbar-dropdown-caret {
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.navbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  display: none;
+}
+
+.navbar-dropdown.open .navbar-dropdown-menu {
+  display: block;
+}
+
+.navbar-dropdown-item {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #424242;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+.navbar-dropdown-item:hover {
+  background: #f5f5f5;
+}
+
+.navbar-dropdown-item.active {
+  background: #333333;
+  color: #f5f5f5;
+  font-weight: 600;
 }
 
 .brand-logos { display: flex; align-items: center; gap: 14px; }
@@ -309,6 +405,7 @@ button.btn-copiar-todo:hover { background-color: #212121; }
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .user-tag {
@@ -466,4 +563,241 @@ button.btn-login:disabled {
   font-size: 11px;
   color: #757575;
   line-height: 1.5;
+}
+
+.role-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  background: #333333;
+  color: #f5f5f5;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.admin-workspace {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  flex: 1;
+  max-height: calc(100vh - 82px);
+  overflow: hidden;
+}
+
+.admin-workspace-full .admin-main {
+  width: 100%;
+}
+
+.admin-main {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.admin-panel {
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 24px;
+  border-top: 4px solid #333333;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+}
+
+.admin-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-panel-header h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: #212121;
+}
+
+.admin-panel-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #616161;
+}
+
+.admin-editor {
+  margin-bottom: 20px;
+}
+
+.admin-editor-header h3 {
+  margin-top: 0;
+}
+
+.admin-editor-desc {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #757575;
+}
+
+.admin-subsection {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #eeeeee;
+}
+
+.admin-subsection h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #424242;
+}
+
+.admin-list,
+.admin-labeled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-list-row,
+.admin-labeled-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-list-row input {
+  flex: 1;
+}
+
+.admin-labeled-row {
+  align-items: flex-start;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.admin-labeled-fields {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-labeled-fields .campo {
+  flex: 1;
+  min-width: 180px;
+}
+
+.admin-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #616161;
+  margin-top: 22px;
+}
+
+.admin-key-value {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+button.btn-admin-add,
+button.btn-admin-save,
+button.btn-admin-secondary,
+button.btn-admin-back,
+button.btn-admin-remove {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+button.btn-admin-add {
+  background: #eeeeee;
+  color: #212121;
+  padding: 8px 14px;
+}
+
+button.btn-admin-add:hover {
+  background: #e0e0e0;
+}
+
+button.btn-admin-remove {
+  background: #ffebee;
+  color: #c62828;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+
+button.btn-admin-remove:hover {
+  background: #ffcdd2;
+}
+
+button.btn-admin-save {
+  background: #212121;
+  color: #ffffff;
+  padding: 10px 18px;
+}
+
+button.btn-admin-save:hover:not(:disabled) {
+  background: #424242;
+}
+
+button.btn-admin-secondary,
+button.btn-admin-back {
+  background: #ffffff;
+  color: #424242;
+  padding: 10px 18px;
+  border: 1px solid #bdbdbd;
+}
+
+button.btn-admin-secondary:hover:not(:disabled),
+button.btn-admin-back:hover {
+  background: #f5f5f5;
+}
+
+button.btn-admin-save:disabled,
+button.btn-admin-secondary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.admin-actions {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.admin-actions-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-error {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: #ffebee;
+  border: 1px solid #ef9a9a;
+  border-radius: 6px;
+  color: #c62828;
+  font-size: 13px;
+}
+
+.admin-success {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 6px;
+  color: #2e7d32;
+  font-size: 13px;
 }

@@ -31,14 +31,21 @@ export const constantsService = {
     const snapshot = await getDoc(ref)
 
     if (!snapshot.exists()) {
-      try {
-        await setDoc(ref, DEFAULT_CONSTANTS)
-        return { ...DEFAULT_CONSTANTS, source: 'firestore' }
-      } catch {
-        return { ...DEFAULT_CONSTANTS, source: 'local' }
-      }
+      return { ...DEFAULT_CONSTANTS, source: 'local' }
     }
 
     return { ...normalizeConstants(snapshot.data()), source: 'firestore' }
+  },
+
+  async updateFormConstants(data) {
+    if (!isFirebaseConfigured()) {
+      throw new Error('Firebase no está configurado.')
+    }
+
+    const normalized = normalizeConstants(data)
+    const db = getFirestoreDb()
+    const ref = doc(db, COLLECTION, DOCUMENT)
+    await setDoc(ref, normalized)
+    return normalized
   },
 }

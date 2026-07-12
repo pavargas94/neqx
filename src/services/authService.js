@@ -4,15 +4,17 @@ import {
   signOut as firebaseSignOut,
 } from 'firebase/auth'
 import { getFirebaseAuth, isFirebaseConfigured } from './firebase'
+import { resolveUserProfile } from './userService'
+import { ROLES } from '../utils/roles'
 
-function mapFirebaseUser(firebaseUser) {
+function mapFirebaseUserOffline(firebaseUser) {
   if (!firebaseUser) return null
 
   return {
     uid: firebaseUser.uid,
     email: firebaseUser.email,
     displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
-    role: 'enfermeria',
+    role: ROLES.ENFERMERIA,
   }
 }
 
@@ -50,8 +52,18 @@ export const authService = {
     }
 
     const auth = getFirebaseAuth()
-    return onAuthStateChanged(auth, (firebaseUser) => {
-      callback(mapFirebaseUser(firebaseUser))
+    return onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        callback(null)
+        return
+      }
+
+      try {
+        const user = await resolveUserProfile(firebaseUser)
+        callback(user)
+      } catch {
+        callback(mapFirebaseUserOffline(firebaseUser))
+      }
     })
   },
 
@@ -66,7 +78,7 @@ export const authService = {
     try {
       const auth = getFirebaseAuth()
       const credential = await signInWithEmailAndPassword(auth, email.trim(), password)
-      return mapFirebaseUser(credential.user)
+      return await resolveUserProfile(credential.user)
     } catch (error) {
       throw new Error(mapFirebaseError(error))
     }

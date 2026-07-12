@@ -2,10 +2,61 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc().data.role == 'admin';
+    }
+
+    function isBootstrapAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/config/bootstrapAdmins)
+        && request.auth.token.email in get(/databases/$(database)/documents/config/bootstrapAdmins).data.emails;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['email', 'role'])
+        && (
+          request.resource.data.role == 'enfermeria'
+          || (request.resource.data.role == 'admin' && isBootstrapAdmin())
+        );
+      allow update: if isAdmin() || (
+        request.auth.uid == userId
+        && resource.data.role == 'enfermeria'
+        && request.resource.data.role == 'admin'
+        && exists(/databases/$(database)/documents/config/bootstrapAdmins)
+        && request.auth.token.email in get(/databases/$(database)/documents/config/bootstrapAdmins).data.emails
+      );
+      allow delete: if false;
+    }
+
+    match /config/bootstrapAdmins {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /config/formConstants {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
     match /config/{document} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if false;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && document != 'formConstants';
+      allow update, delete: if isAdmin();
     }
   }
 }

@@ -4,9 +4,19 @@ import { useDispatch, useSelector } from 'react-redux'
 import { setUser } from './store/authSlice'
 import { fetchFormConstants } from './store/constantsSlice'
 import { authService } from './services/authService'
+import { ROLES } from './utils/roles'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminCirujanosPage from './pages/admin/AdminCirujanosPage'
+import AdminAyudantesPage from './pages/admin/AdminAyudantesPage'
+import AdminSegundosCirujanosPage from './pages/admin/AdminSegundosCirujanosPage'
+import AdminAnestesiologosPage from './pages/admin/AdminAnestesiologosPage'
+import AdminInstrumentadoresPage from './pages/admin/AdminInstrumentadoresPage'
+import AdminMedicamentosPage from './pages/admin/AdminMedicamentosPage'
+import AdminMuestrasPage from './pages/admin/AdminMuestrasPage'
+import AdminEtiquetasPage from './pages/admin/AdminEtiquetasPage'
 
 function AppRoutes() {
   const dispatch = useDispatch()
@@ -49,6 +59,24 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="/admin/cirujanos" replace />} />
+        <Route path="cirujanos" element={<AdminCirujanosPage />} />
+        <Route path="ayudantes" element={<AdminAyudantesPage />} />
+        <Route path="segundos-cirujanos" element={<AdminSegundosCirujanosPage />} />
+        <Route path="anestesiologos" element={<AdminAnestesiologosPage />} />
+        <Route path="instrumentadores" element={<AdminInstrumentadoresPage />} />
+        <Route path="medicamentos" element={<AdminMedicamentosPage />} />
+        <Route path="muestras" element={<AdminMuestrasPage />} />
+        <Route path="etiquetas" element={<AdminEtiquetasPage />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
