@@ -1,20 +1,44 @@
+import {
+  buildCirujanosPorEspecialidadFromLegacy,
+  deriveCirujanosFlat,
+  deriveSegundosCirujanos,
+} from '../utils/cirujanosHelpers'
+
+const LEGACY_CIRUJANOS = {
+  colelap: ['Dr. Juan Pérez', 'Dra. María Gómez'],
+  histerectomia: [
+    'Dr. Guillermo Ríos',
+    'Dr. Pablo Enrique Hoyos',
+    'Dra. Carolina Rendón',
+    'Dra. Ana María Toro',
+    'Dr. Fernando Felipe Paz',
+  ],
+  reemplazo: [
+    'Dr. Mario Andres Insuasty',
+    'Dr. Harold Losada',
+    'Dr. Jorge Eduardo Quintero',
+    'Dr. Jairo Ibarra Imbachi',
+  ],
+}
+
+const LEGACY_SEGUNDOS_CIRUJANOS = [
+  'Dr. Juan David Urrea',
+  'Dr. Ricardo Niño',
+  'Dr. David Cantillo',
+  'Dr. Carlos David Segura',
+  'Dr. Juan Carlos Aguirre',
+  'Dr. Camilo Romero',
+]
+
+const cirujanosPorEspecialidad = buildCirujanosPorEspecialidadFromLegacy({
+  cirujanos: LEGACY_CIRUJANOS,
+  segundosCirujanos: LEGACY_SEGUNDOS_CIRUJANOS,
+})
+
 export const DEFAULT_CONSTANTS = {
-  cirujanos: {
-    colelap: ['Dr. Juan Pérez', 'Dra. María Gómez'],
-    histerectomia: [
-      'Dr. Guillermo Ríos',
-      'Dr. Pablo Enrique Hoyos',
-      'Dra. Carolina Rendón',
-      'Dra. Ana María Toro',
-      'Dr. Fernando Felipe Paz',
-    ],
-    reemplazo: [
-      'Dr. Mario Andres Insuasty',
-      'Dr. Harold Losada',
-      'Dr. Jorge Eduardo Quintero',
-      'Dr. Jairo Ibarra Imbachi',
-    ],
-  },
+  cirujanosPorEspecialidad,
+  cirujanos: deriveCirujanosFlat(cirujanosPorEspecialidad),
+  segundosCirujanos: deriveSegundosCirujanos(cirujanosPorEspecialidad),
   ayudantes: [
     { value: 'No aplica', label: '(No aplica)' },
     { value: 'Dr. Esteban Ortega', label: 'Dr. Esteban Ortega' },
@@ -24,14 +48,6 @@ export const DEFAULT_CONSTANTS = {
     { value: 'Dr. Cristian Galán', label: 'Dr. Cristian Galán' },
     { value: 'Dr. Andrés Ruano', label: 'Dr. Andrés Ruano' },
     { value: 'Dra. Alejandra Arcila', label: 'Dra. Alejandra Arcila' },
-  ],
-  segundosCirujanos: [
-    'Dr. Juan David Urrea',
-    'Dr. Ricardo Niño',
-    'Dr. David Cantillo',
-    'Dr. Carlos David Segura',
-    'Dr. Juan Carlos Aguirre',
-    'Dr. Camilo Romero',
   ],
   anestesiologos: [
     'Dr. Fernando Arboleda',
@@ -79,6 +95,7 @@ export const DEFAULT_CONSTANTS = {
     { value: 'Ácido Tranexámico 1gr EV', label: 'Ácido Tranexámico 1gr' },
     { value: 'Dipirona 2.5gr / Hioscina 20mg EV', label: 'Dipirona 2.5g / Hioscina 20mg', span2: true },
   ],
+  // Solo valores locales; no se persisten en Firestore.
   muestrasDefault: {
     colelap: 'vesícula biliar',
     histerectomia: 'útero y anexos',

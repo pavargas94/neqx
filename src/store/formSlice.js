@@ -1,7 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { DEFAULT_CONSTANTS } from '../data/constants'
+import {
+  findEspecialidadByProcedure,
+  pickDefaultProcedureKey,
+} from '../utils/procedimientosHelpers'
 
 const initialState = {
+  especialidadId: 'ortopedia',
   tipoCirugia: 'reemplazo',
   sala: '4',
   tipoReemplazo: 'primario',
@@ -69,12 +74,28 @@ const formSlice = createSlice({
       state[field] = value
     },
     applyCirugia(state, action) {
-      const { cirugia, cirujanos, muestrasDefault } = action.payload
-      const listaCirujanos = cirujanos[cirugia]
+      const { cirugia, especialidadId, cirujanos, muestrasDefault } = action.payload
+      const listaCirujanos = cirujanos[cirugia] || []
       const prevCirujano = state.cirujano
+      if (especialidadId) state.especialidadId = especialidadId
       state.tipoCirugia = cirugia
-      state.cirujano = listaCirujanos.includes(prevCirujano) ? prevCirujano : listaCirujanos[0]
+      state.cirujano = listaCirujanos.length && listaCirujanos.includes(prevCirujano)
+        ? prevCirujano
+        : (listaCirujanos[0] || '')
       state.nombreMuestra = muestrasDefault[cirugia]
+      state.modalidadAnestesia = cirugia === 'colelap' ? 'general' : 'raquidea'
+      if (cirugia !== 'reemplazo') state.mostrarBloqueo = false
+    },
+    applyEspecialidad(state, action) {
+      const { especialidadId, cirugia, cirujanos, muestrasDefault } = action.payload
+      const listaCirujanos = cirujanos[cirugia] || []
+      const prevCirujano = state.cirujano
+      state.especialidadId = especialidadId
+      state.tipoCirugia = cirugia
+      state.cirujano = listaCirujanos.length && listaCirujanos.includes(prevCirujano)
+        ? prevCirujano
+        : (listaCirujanos[0] || '')
+      state.nombreMuestra = muestrasDefault[cirugia] || ''
       state.modalidadAnestesia = cirugia === 'colelap' ? 'general' : 'raquidea'
       if (cirugia !== 'reemplazo') state.mostrarBloqueo = false
     },
@@ -149,11 +170,12 @@ const formSlice = createSlice({
       }
     },
     applyLimpiarDiferenteEquipo(state, action) {
-      const { cirugia, cirujanos, muestrasDefault } = action.payload
+      const { cirugia, especialidadId, cirujanos, muestrasDefault } = action.payload
       return {
         ...initialState,
+        especialidadId,
         tipoCirugia: cirugia,
-        cirujano: cirujanos[cirugia][0],
+        cirujano: (cirujanos[cirugia] || [])[0] || '',
         nombreMuestra: muestrasDefault[cirugia],
         modalidadAnestesia: cirugia === 'colelap' ? 'general' : 'raquidea',
       }
@@ -168,20 +190,43 @@ export const {
 } = formSlice.actions
 
 export const setCirugia = (cirugia) => (dispatch, getState) => {
-  const { cirujanos, muestrasDefault } = getConstants(getState)
-  dispatch(formSlice.actions.applyCirugia({ cirugia, cirujanos, muestrasDefault }))
+  const constants = getConstants(getState)
+  const esp = findEspecialidadByProcedure(constants.especialidades, cirugia)
+  dispatch(formSlice.actions.applyCirugia({
+    cirugia,
+    especialidadId: esp?.id || getState().form.especialidadId,
+    cirujanos: constants.cirujanos,
+    muestrasDefault: constants.muestrasDefault,
+  }))
+}
+
+export const setEspecialidad = (especialidadId) => (dispatch, getState) => {
+  const constants = getConstants(getState)
+  const esp = (constants.especialidades || []).find(e => e.id === especialidadId)
+  const cirugia = pickDefaultProcedureKey(esp, getState().form.tipoCirugia)
+  dispatch(formSlice.actions.applyEspecialidad({
+    especialidadId,
+    cirugia,
+    cirujanos: constants.cirujanos,
+    muestrasDefault: constants.muestrasDefault,
+  }))
 }
 
 export const limpiarMismoEquipo = () => (dispatch, getState) => {
-  const cirugia = getState().form.tipoCirugia
+  const { tipoCirugia } = getState().form
   const { muestrasDefault } = getConstants(getState)
-  dispatch(formSlice.actions.applyLimpiarMismoEquipo({ cirugia, muestrasDefault }))
+  dispatch(formSlice.actions.applyLimpiarMismoEquipo({ cirugia: tipoCirugia, muestrasDefault }))
 }
 
 export const limpiarDiferenteEquipo = () => (dispatch, getState) => {
-  const cirugia = getState().form.tipoCirugia
-  const { cirujanos, muestrasDefault } = getConstants(getState)
-  dispatch(formSlice.actions.applyLimpiarDiferenteEquipo({ cirugia, cirujanos, muestrasDefault }))
+  const { tipoCirugia, especialidadId } = getState().form
+  const constants = getConstants(getState)
+  dispatch(formSlice.actions.applyLimpiarDiferenteEquipo({
+    cirugia: tipoCirugia,
+    especialidadId,
+    cirujanos: constants.cirujanos,
+    muestrasDefault: constants.muestrasDefault,
+  }))
 }
 
 export default formSlice.reducer

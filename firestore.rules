@@ -40,6 +40,30 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /personal/{document} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /medicacion/{document} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /especialidades/{document} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /plantillas/{document} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     match /config/bootstrapAdmins {
       allow read: if isSignedIn();
       allow create: if isSignedIn();

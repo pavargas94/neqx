@@ -639,6 +639,80 @@ button.btn-login:disabled {
   color: #757575;
 }
 
+.admin-especialidad {
+  margin-bottom: 28px;
+  padding: 0;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.admin-especialidad-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  border: none;
+  background: #fafafa;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.admin-especialidad-toggle:hover {
+  background: #f0f0f0;
+}
+
+.admin-especialidad-chevron {
+  display: inline-block;
+  font-size: 10px;
+  color: #616161;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.admin-especialidad-collapsed .admin-especialidad-chevron {
+  transform: rotate(-90deg);
+}
+
+.admin-especialidad-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-especialidad-title strong {
+  font-size: 15px;
+  color: #212121;
+}
+
+.admin-especialidad-count {
+  font-size: 12px;
+  color: #757575;
+  font-weight: normal;
+}
+
+.admin-especialidad-body {
+  padding: 16px 20px 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.admin-especialidad-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #333333;
+}
+
+.admin-especialidad-header h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: #212121;
+}
+
 .admin-subsection {
   margin-bottom: 20px;
   padding: 16px;
@@ -800,4 +874,109 @@ button.btn-admin-secondary:disabled {
   border-radius: 6px;
   color: #2e7d32;
   font-size: 13px;
+}
+
+.admin-personal-card {
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.admin-personal-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 12px;
+}
+
+.admin-personal-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.admin-personal-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.admin-personal-categorias-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #616161;
+}
+
+.admin-personal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.admin-especialidad-empty {
+  margin-bottom: 8px;
+}
+
+button.btn-admin-add-section {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.admin-especialidad-orphan {
+  border-color: #ffcc80;
+}
+
+.admin-especialidad-orphan .admin-especialidad-toggle {
+  background: #fff8e1;
+}
+
+.admin-especialidad-orphan .admin-especialidad-toggle:hover {
+  background: #ffecb3;
+}
+
+.admin-editor-new {
+  border: 2px dashed #90caf9;
+  border-radius: 10px;
+  padding: 16px;
+  background: #f8fbff;
+}
+
+.admin-especialidad-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-campo-orden input {
+  width: 70px;
+}
+
+.admin-procedimiento-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .admin-procedimiento-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-procedimiento-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-personal-grid,
+  .admin-personal-grid-2 {
+    grid-template-columns: 1fr;
+  }
 }

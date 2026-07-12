@@ -1,30 +1,40 @@
-import { useCallback } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import CirujanosEditor from '../../components/admin/CirujanosEditor'
-import {
-  AdminSectionActions,
-  filterEmptyStrings,
-  useAdminSection,
-} from './AdminLayout'
+import CirujanosPersonalEditor from '../../components/admin/CirujanosPersonalEditor'
+import { emptyCirujano } from '../../utils/personalModel'
+import { AdminSectionActions } from './AdminLayout'
+import { useCirujanosCollection } from './usePersonalCollection'
 
 export default function AdminCirujanosPage() {
   const navigate = useNavigate()
-  const selectDraft = useCallback(data => ({
-    colelap: [...(data.cirujanos?.colelap || [])],
-    histerectomia: [...(data.cirujanos?.histerectomia || [])],
-    reemplazo: [...(data.cirujanos?.reemplazo || [])],
-  }), [])
+  const [focusIndex, setFocusIndex] = useState(null)
+  const {
+    members,
+    setMembers,
+    especialidades,
+    loading,
+    saving,
+    saveError,
+    saveSuccess,
+    handleSave,
+    handleCancel,
+  } = useCirujanosCollection()
 
-  const { draft, setDraft, saving, saveError, saveSuccess, handleSave, handleCancel } =
-    useAdminSection('cirujanos', selectDraft)
+  function handleAdd(especialidadId) {
+    const newIndex = members.length
+    setMembers(prev => [
+      ...prev,
+      {
+        ...emptyCirujano(especialidadId, especialidades),
+        _clientId: `new-${Date.now()}`,
+      },
+    ])
+    setFocusIndex(newIndex)
+  }
 
-  function onSave() {
-    const normalized = {
-      colelap: filterEmptyStrings(draft.colelap),
-      histerectomia: filterEmptyStrings(draft.histerectomia),
-      reemplazo: filterEmptyStrings(draft.reemplazo),
-    }
-    handleSave(normalized)
+  function handleCancelDraft() {
+    setFocusIndex(null)
+    handleCancel()
   }
 
   return (
@@ -32,21 +42,36 @@ export default function AdminCirujanosPage() {
       <div className="admin-panel-header">
         <div>
           <h2>Cirujanos</h2>
-          <p>Gestiona las listas de cirujanos por tipo de procedimiento.</p>
+          <p>
+            Gestiona cirujanos con nombre, especialidad (rol principal) y categorías
+            opcionales para filtrar procedimientos.
+          </p>
         </div>
         <button type="button" className="btn-admin-back" onClick={() => navigate('/')}>
           ← Volver al formulario
         </button>
       </div>
 
-      <CirujanosEditor data={draft} onChange={setDraft} />
-      <AdminSectionActions
-        saving={saving}
-        saveError={saveError}
-        saveSuccess={saveSuccess}
-        onSave={onSave}
-        onCancel={handleCancel}
-      />
+      {loading ? (
+        <p style={{ padding: '16px 0' }}>Cargando cirujanos…</p>
+      ) : (
+        <>
+          <CirujanosPersonalEditor
+            members={members}
+            especialidades={especialidades}
+            onChange={setMembers}
+            onAdd={handleAdd}
+            focusIndex={focusIndex}
+          />
+          <AdminSectionActions
+            saving={saving}
+            saveError={saveError}
+            saveSuccess={saveSuccess}
+            onSave={handleSave}
+            onCancel={handleCancelDraft}
+          />
+        </>
+      )}
     </div>
   )
 }

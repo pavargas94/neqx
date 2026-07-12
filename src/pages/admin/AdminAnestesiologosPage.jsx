@@ -1,22 +1,22 @@
-import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import StringListEditor from '../../components/admin/StringListEditor'
-import {
-  AdminSectionActions,
-  filterEmptyStrings,
-  useAdminSection,
-} from './AdminLayout'
+import SimplePersonalEditor from '../../components/admin/SimplePersonalEditor'
+import { TIPOS_PERSONAL } from '../../data/firestoreCollections'
+import { emptySimpleMember } from '../../utils/personalModel'
+import { AdminSectionActions } from './AdminLayout'
+import { useAnestesiologosCollection } from './usePersonalCollection'
 
 export default function AdminAnestesiologosPage() {
   const navigate = useNavigate()
-  const selectDraft = useCallback(data => [...(data.anestesiologos || [])], [])
-
-  const { draft, setDraft, saving, saveError, saveSuccess, handleSave, handleCancel } =
-    useAdminSection('anestesiologos', selectDraft)
-
-  function onSave() {
-    handleSave(filterEmptyStrings(draft))
-  }
+  const {
+    members,
+    setMembers,
+    loading,
+    saving,
+    saveError,
+    saveSuccess,
+    handleSave,
+    handleCancel,
+  } = useAnestesiologosCollection()
 
   return (
     <div className="admin-panel">
@@ -30,19 +30,26 @@ export default function AdminAnestesiologosPage() {
         </button>
       </div>
 
-      <StringListEditor
-        title="Anestesiólogos"
-        items={draft}
-        placeholder="Nombre del anestesiólogo"
-        onChange={setDraft}
-      />
-      <AdminSectionActions
-        saving={saving}
-        saveError={saveError}
-        saveSuccess={saveSuccess}
-        onSave={onSave}
-        onCancel={handleCancel}
-      />
+      {loading ? (
+        <p style={{ padding: '16px 0' }}>Cargando anestesiólogos…</p>
+      ) : (
+        <>
+          <SimplePersonalEditor
+            title="Anestesiólogos"
+            placeholder="Nombre del anestesiólogo"
+            members={members}
+            onChange={setMembers}
+            onAdd={() => setMembers(prev => [...prev, emptySimpleMember(TIPOS_PERSONAL.ANESTESIOLOGO)])}
+          />
+          <AdminSectionActions
+            saving={saving}
+            saveError={saveError}
+            saveSuccess={saveSuccess}
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
+        </>
+      )}
     </div>
   )
 }

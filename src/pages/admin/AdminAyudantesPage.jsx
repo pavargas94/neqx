@@ -1,25 +1,21 @@
-import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import LabeledListEditor from '../../components/admin/LabeledListEditor'
-import {
-  AdminSectionActions,
-  filterLabeledItems,
-  useAdminSection,
-} from './AdminLayout'
+import AyudantesPersonalEditor from '../../components/admin/AyudantesPersonalEditor'
+import { emptyAyudante } from '../../utils/personalModel'
+import { AdminSectionActions } from './AdminLayout'
+import { useAyudantesCollection } from './usePersonalCollection'
 
 export default function AdminAyudantesPage() {
   const navigate = useNavigate()
-  const selectDraft = useCallback(
-    data => (data.ayudantes || []).map(item => ({ ...item })),
-    [],
-  )
-
-  const { draft, setDraft, saving, saveError, saveSuccess, handleSave, handleCancel } =
-    useAdminSection('ayudantes', selectDraft)
-
-  function onSave() {
-    handleSave(filterLabeledItems(draft))
-  }
+  const {
+    members,
+    setMembers,
+    loading,
+    saving,
+    saveError,
+    saveSuccess,
+    handleSave,
+    handleCancel,
+  } = useAyudantesCollection()
 
   return (
     <div className="admin-panel">
@@ -33,19 +29,24 @@ export default function AdminAyudantesPage() {
         </button>
       </div>
 
-      <LabeledListEditor
-        title="Lista de ayudantes"
-        description="El valor es lo que se guarda en la nota; la etiqueta es lo que ve el usuario."
-        items={draft}
-        onChange={setDraft}
-      />
-      <AdminSectionActions
-        saving={saving}
-        saveError={saveError}
-        saveSuccess={saveSuccess}
-        onSave={onSave}
-        onCancel={handleCancel}
-      />
+      {loading ? (
+        <p style={{ padding: '16px 0' }}>Cargando ayudantes…</p>
+      ) : (
+        <>
+          <AyudantesPersonalEditor
+            members={members}
+            onChange={setMembers}
+            onAdd={() => setMembers(prev => [...prev, emptyAyudante()])}
+          />
+          <AdminSectionActions
+            saving={saving}
+            saveError={saveError}
+            saveSuccess={saveSuccess}
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
+        </>
+      )}
     </div>
   )
 }

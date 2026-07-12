@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { setUser } from './store/authSlice'
 import { fetchFormConstants } from './store/constantsSlice'
 import { authService } from './services/authService'
+import { plantillasService } from './services/plantillasService'
 import { ROLES } from './utils/roles'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
@@ -15,8 +16,10 @@ import AdminSegundosCirujanosPage from './pages/admin/AdminSegundosCirujanosPage
 import AdminAnestesiologosPage from './pages/admin/AdminAnestesiologosPage'
 import AdminInstrumentadoresPage from './pages/admin/AdminInstrumentadoresPage'
 import AdminMedicamentosPage from './pages/admin/AdminMedicamentosPage'
-import AdminMuestrasPage from './pages/admin/AdminMuestrasPage'
 import AdminEtiquetasPage from './pages/admin/AdminEtiquetasPage'
+import AdminEspecialidadesPage from './pages/admin/AdminEspecialidadesPage'
+import AdminPlantillasPage from './pages/admin/AdminPlantillasPage'
+import AdminSeedPage from './pages/admin/AdminSeedPage'
 
 function AppRoutes() {
   const dispatch = useDispatch()
@@ -36,6 +39,12 @@ function AppRoutes() {
       dispatch(fetchFormConstants())
     }
   }, [user, constantsLoaded, constantsLoading, dispatch])
+
+  useEffect(() => {
+    if (user) {
+      plantillasService.preload()
+    }
+  }, [user])
 
   if (!initialized || (user && !constantsLoaded)) {
     return (
@@ -74,8 +83,11 @@ function AppRoutes() {
         <Route path="anestesiologos" element={<AdminAnestesiologosPage />} />
         <Route path="instrumentadores" element={<AdminInstrumentadoresPage />} />
         <Route path="medicamentos" element={<AdminMedicamentosPage />} />
-        <Route path="muestras" element={<AdminMuestrasPage />} />
         <Route path="etiquetas" element={<AdminEtiquetasPage />} />
+        <Route path="muestras" element={<Navigate to="/admin/cirujanos" replace />} />
+        <Route path="especialidades" element={<AdminEspecialidadesPage />} />
+        <Route path="plantillas" element={<AdminPlantillasPage />} />
+        <Route path="poblar-datos" element={<AdminSeedPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

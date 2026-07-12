@@ -1,22 +1,22 @@
-import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import StringListEditor from '../../components/admin/StringListEditor'
-import {
-  AdminSectionActions,
-  filterEmptyStrings,
-  useAdminSection,
-} from './AdminLayout'
+import SimplePersonalEditor from '../../components/admin/SimplePersonalEditor'
+import { TIPOS_PERSONAL } from '../../data/firestoreCollections'
+import { emptySimpleMember } from '../../utils/personalModel'
+import { AdminSectionActions } from './AdminLayout'
+import { useInstrumentadoresCollection } from './usePersonalCollection'
 
 export default function AdminInstrumentadoresPage() {
   const navigate = useNavigate()
-  const selectDraft = useCallback(data => [...(data.instrumentadores || [])], [])
-
-  const { draft, setDraft, saving, saveError, saveSuccess, handleSave, handleCancel } =
-    useAdminSection('instrumentadores', selectDraft)
-
-  function onSave() {
-    handleSave(filterEmptyStrings(draft))
-  }
+  const {
+    members,
+    setMembers,
+    loading,
+    saving,
+    saveError,
+    saveSuccess,
+    handleSave,
+    handleCancel,
+  } = useInstrumentadoresCollection()
 
   return (
     <div className="admin-panel">
@@ -30,19 +30,26 @@ export default function AdminInstrumentadoresPage() {
         </button>
       </div>
 
-      <StringListEditor
-        title="Instrumentadores"
-        items={draft}
-        placeholder="Nombre del instrumentador"
-        onChange={setDraft}
-      />
-      <AdminSectionActions
-        saving={saving}
-        saveError={saveError}
-        saveSuccess={saveSuccess}
-        onSave={onSave}
-        onCancel={handleCancel}
-      />
+      {loading ? (
+        <p style={{ padding: '16px 0' }}>Cargando instrumentadores…</p>
+      ) : (
+        <>
+          <SimplePersonalEditor
+            title="Instrumentadores"
+            placeholder="Nombre del instrumentador"
+            members={members}
+            onChange={setMembers}
+            onAdd={() => setMembers(prev => [...prev, emptySimpleMember(TIPOS_PERSONAL.INSTRUMENTADOR)])}
+          />
+          <AdminSectionActions
+            saving={saving}
+            saveError={saveError}
+            saveSuccess={saveSuccess}
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
+        </>
+      )}
     </div>
   )
 }

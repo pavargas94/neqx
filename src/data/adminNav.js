@@ -13,9 +13,9 @@ export const NAV_MENUS = [
     items: [
       { id: 'cirujanos', label: 'Cirujanos', path: '/admin/cirujanos' },
       { id: 'ayudantes', label: 'Ayudantes', path: '/admin/ayudantes' },
-      { id: 'segundosCirujanos', label: 'Segundos cirujanos', path: '/admin/segundos-cirujanos' },
       { id: 'anestesiologos', label: 'Anestesiólogos', path: '/admin/anestesiologos' },
       { id: 'instrumentadores', label: 'Instrumentadores', path: '/admin/instrumentadores' },
+      { id: 'labels', label: 'Etiquetas de cirujano', path: '/admin/etiquetas' },
     ],
   },
   {
@@ -27,12 +27,13 @@ export const NAV_MENUS = [
     ],
   },
   {
-    id: 'configuracion',
-    label: 'Configuración',
+    id: 'procedimientos',
+    label: 'Procedimientos',
     adminOnly: true,
     items: [
-      { id: 'muestras', label: 'Muestras de patología', path: '/admin/muestras' },
-      { id: 'labels', label: 'Etiquetas de cirujano', path: '/admin/etiquetas' },
+      { id: 'especialidades', label: 'Especialidades', path: '/admin/especialidades' },
+      { id: 'plantillas', label: 'Plantillas de notas', path: '/admin/plantillas' },
+      { id: 'poblar', label: 'Poblar Firestore', path: '/admin/poblar-datos' },
     ],
   },
 ]

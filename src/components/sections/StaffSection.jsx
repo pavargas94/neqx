@@ -25,9 +25,9 @@ export default function StaffSection() {
       <h3>Personal en Sala</h3>
       <div className="fila">
         <div className="campo">
-          <label>{labelCirujano[tipoCirugia]}</label>
+          <label>{labelCirujano[tipoCirugia] || 'Cirujano:'}</label>
           <select value={cirujano} onChange={field('cirujano')}>
-            {cirujanos[tipoCirugia].map(doc => (
+            {(cirujanos[tipoCirugia] || []).map(doc => (
               <option key={doc} value={doc}>{doc}</option>
             ))}
           </select>

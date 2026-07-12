@@ -1,24 +1,57 @@
+import { useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { setCirugia, setField } from '../../store/formSlice'
+import { setCirugia, setEspecialidad, setField } from '../../store/formSlice'
+import { getFormProceduresForEspecialidad } from '../../utils/procedimientosHelpers'
 
 export default function ProcedureSection() {
   const dispatch = useDispatch()
+  const especialidadId = useSelector(s => s.form.especialidadId)
   const tipoCirugia = useSelector(s => s.form.tipoCirugia)
   const sala = useSelector(s => s.form.sala)
   const tipoReemplazo = useSelector(s => s.form.tipoReemplazo)
   const lateralidadRodilla = useSelector(s => s.form.lateralidadRodilla)
   const casaMedica = useSelector(s => s.form.casaMedica)
+  const especialidades = useSelector(s => s.constants.data.especialidades) || []
+
+  const especialidadActual = useMemo(
+    () => especialidades.find(esp => esp.id === especialidadId),
+    [especialidades, especialidadId],
+  )
+
+  const cirugiasDisponibles = useMemo(
+    () => getFormProceduresForEspecialidad(especialidadActual),
+    [especialidadActual],
+  )
 
   return (
     <>
       <h3>Procedimiento Principal</h3>
       <div className="fila">
         <div className="campo">
+          <label>Seleccione la Especialidad:</label>
+          <select
+            value={especialidadId}
+            onChange={e => dispatch(setEspecialidad(e.target.value))}
+          >
+            {especialidades.map(esp => (
+              <option key={esp.id} value={esp.id}>{esp.nombre}</option>
+            ))}
+          </select>
+        </div>
+        <div className="campo">
           <label>Seleccione la Cirugía:</label>
-          <select value={tipoCirugia} onChange={e => dispatch(setCirugia(e.target.value))}>
-            <option value="colelap">Colecistectomía Laparoscópica</option>
-            <option value="histerectomia">Histerectomía Abdominal (Laparotomía)</option>
-            <option value="reemplazo">Reemplazo de Rodilla</option>
+          <select
+            value={tipoCirugia}
+            onChange={e => dispatch(setCirugia(e.target.value))}
+            disabled={cirugiasDisponibles.length === 0}
+          >
+            {cirugiasDisponibles.length === 0 ? (
+              <option value="">Sin cirugías disponibles</option>
+            ) : (
+              cirugiasDisponibles.map(proc => (
+                <option key={proc.key} value={proc.key}>{proc.nombre}</option>
+              ))
+            )}
           </select>
         </div>
         <div className="campo">
