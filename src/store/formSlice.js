@@ -4,14 +4,18 @@ import {
   findEspecialidadByProcedure,
   pickDefaultProcedureKey,
 } from '../utils/procedimientosHelpers'
+import { OPCIONES_DEFAULTS } from '../data/procedimientoOpcionesDefaults'
+import {
+  getDefaultOpciones,
+  getProcedimientoConfig,
+} from '../utils/procedimientoOpciones'
+import { pickDefaultCirujano } from '../utils/cirujanosHelpers'
 
 const initialState = {
   especialidadId: 'ortopedia',
   tipoCirugia: 'reemplazo',
   sala: '4',
-  tipoReemplazo: 'primario',
-  lateralidadRodilla: 'derecha',
-  casaMedica: '',
+  opcionesProcedimiento: getDefaultOpciones(OPCIONES_DEFAULTS.reemplazo),
 
   hIngreso: '', hAnestesia: '', hLavado: '', hInicio: '',
   hMedicacion: '', hFinal: '', hTraslado: '',
@@ -65,6 +69,26 @@ function getConstants(getState) {
   return getState?.().constants?.data ?? DEFAULT_CONSTANTS
 }
 
+function applyProcedimientoConfig(state, cirugia, especialidades) {
+  const procConfig = getProcedimientoConfig(especialidades, cirugia)
+  state.opcionesProcedimiento = getDefaultOpciones(procConfig.opciones)
+  const flags = procConfig.flags || {}
+  state.modalidadAnestesia = flags.anestesiaDefault
+    ?? (cirugia === 'colelap' ? 'general' : 'raquidea')
+  if (!flags.bloqueoRegional) state.mostrarBloqueo = false
+}
+
+function applyStaffForContext(state, { especialidadId, cirugia, constants, especialidades }) {
+  const procConfig = getProcedimientoConfig(especialidades, cirugia)
+  state.cirujano = pickDefaultCirujano(constants, especialidadId, cirugia, '')
+
+  if (procConfig.flags?.segundoCirujano) {
+    state.segundoCirujano = constants.segundosCirujanos?.[0] || ''
+  } else {
+    state.segundoCirujano = ''
+  }
+}
+
 const formSlice = createSlice({
   name: 'form',
   initialState,
@@ -73,31 +97,35 @@ const formSlice = createSlice({
       const { field, value } = action.payload
       state[field] = value
     },
+    setOpcionProcedimiento(state, action) {
+      const { id, value } = action.payload
+      state.opcionesProcedimiento[id] = value
+    },
     applyCirugia(state, action) {
-      const { cirugia, especialidadId, cirujanos, muestrasDefault } = action.payload
-      const listaCirujanos = cirujanos[cirugia] || []
-      const prevCirujano = state.cirujano
+      const { cirugia, especialidadId, constants, muestrasDefault, especialidades } = action.payload
       if (especialidadId) state.especialidadId = especialidadId
       state.tipoCirugia = cirugia
-      state.cirujano = listaCirujanos.length && listaCirujanos.includes(prevCirujano)
-        ? prevCirujano
-        : (listaCirujanos[0] || '')
       state.nombreMuestra = muestrasDefault[cirugia]
-      state.modalidadAnestesia = cirugia === 'colelap' ? 'general' : 'raquidea'
-      if (cirugia !== 'reemplazo') state.mostrarBloqueo = false
+      applyProcedimientoConfig(state, cirugia, especialidades)
+      applyStaffForContext(state, {
+        especialidadId: state.especialidadId,
+        cirugia,
+        constants,
+        especialidades,
+      })
     },
     applyEspecialidad(state, action) {
-      const { especialidadId, cirugia, cirujanos, muestrasDefault } = action.payload
-      const listaCirujanos = cirujanos[cirugia] || []
-      const prevCirujano = state.cirujano
+      const { especialidadId, cirugia, constants, muestrasDefault, especialidades } = action.payload
       state.especialidadId = especialidadId
       state.tipoCirugia = cirugia
-      state.cirujano = listaCirujanos.length && listaCirujanos.includes(prevCirujano)
-        ? prevCirujano
-        : (listaCirujanos[0] || '')
       state.nombreMuestra = muestrasDefault[cirugia] || ''
-      state.modalidadAnestesia = cirugia === 'colelap' ? 'general' : 'raquidea'
-      if (cirugia !== 'reemplazo') state.mostrarBloqueo = false
+      applyProcedimientoConfig(state, cirugia, especialidades)
+      applyStaffForContext(state, {
+        especialidadId,
+        cirugia,
+        constants,
+        especialidades,
+      })
     },
     setAnestesiaMode(state, action) {
       const modo = action.payload
@@ -134,19 +162,20 @@ const formSlice = createSlice({
       }
     },
     applyLimpiarMismoEquipo(state, action) {
-      const { cirugia, muestrasDefault } = action.payload
+      const { cirugia, muestrasDefault, especialidades } = action.payload
+      const procConfig = getProcedimientoConfig(especialidades, cirugia)
+      const flags = procConfig.flags || {}
       return {
         ...state,
         hIngreso: '', hAnestesia: '', hLavado: '', hInicio: '',
         hMedicacion: '', hFinal: '', hTraslado: '',
         cGasas: 0, cCompresas: 0, cMechas: 0, cCotonoides: 0,
-        casaMedica: '',
-        tipoReemplazo: 'primario',
-        lateralidadRodilla: 'derecha',
+        opcionesProcedimiento: getDefaultOpciones(procConfig.opciones),
         calibre: '18G',
         ubicacionVena: 'dorso de la mano',
         miembro: 'izquierdo',
-        modalidadAnestesia: cirugia === 'colelap' ? 'general' : 'raquidea',
+        modalidadAnestesia: flags.anestesiaDefault
+          ?? (cirugia === 'colelap' ? 'general' : 'raquidea'),
         anestApl: '27G',
         mostrarBloqueo: false,
         hBloqueo: '',
@@ -170,21 +199,26 @@ const formSlice = createSlice({
       }
     },
     applyLimpiarDiferenteEquipo(state, action) {
-      const { cirugia, especialidadId, cirujanos, muestrasDefault } = action.payload
-      return {
+      const { cirugia, especialidadId, constants, muestrasDefault, especialidades } = action.payload
+      const procConfig = getProcedimientoConfig(especialidades, cirugia)
+      const flags = procConfig.flags || {}
+      const next = {
         ...initialState,
         especialidadId,
         tipoCirugia: cirugia,
-        cirujano: (cirujanos[cirugia] || [])[0] || '',
         nombreMuestra: muestrasDefault[cirugia],
-        modalidadAnestesia: cirugia === 'colelap' ? 'general' : 'raquidea',
+        opcionesProcedimiento: getDefaultOpciones(procConfig.opciones),
+        modalidadAnestesia: flags.anestesiaDefault
+          ?? (cirugia === 'colelap' ? 'general' : 'raquidea'),
       }
+      applyStaffForContext(next, { especialidadId, cirugia, constants, especialidades })
+      return next
     },
   },
 })
 
 export const {
-  setField, setAnestesiaMode, conmutarAnestesia,
+  setField, setOpcionProcedimiento, setAnestesiaMode, conmutarAnestesia,
   toggleBloqueo, activarFalloAnestesico,
   toggleMedicamento, addNovedad, updateNovedad,
 } = formSlice.actions
@@ -195,8 +229,9 @@ export const setCirugia = (cirugia) => (dispatch, getState) => {
   dispatch(formSlice.actions.applyCirugia({
     cirugia,
     especialidadId: esp?.id || getState().form.especialidadId,
-    cirujanos: constants.cirujanos,
+    constants,
     muestrasDefault: constants.muestrasDefault,
+    especialidades: constants.especialidades,
   }))
 }
 
@@ -207,15 +242,20 @@ export const setEspecialidad = (especialidadId) => (dispatch, getState) => {
   dispatch(formSlice.actions.applyEspecialidad({
     especialidadId,
     cirugia,
-    cirujanos: constants.cirujanos,
+    constants,
     muestrasDefault: constants.muestrasDefault,
+    especialidades: constants.especialidades,
   }))
 }
 
 export const limpiarMismoEquipo = () => (dispatch, getState) => {
   const { tipoCirugia } = getState().form
-  const { muestrasDefault } = getConstants(getState)
-  dispatch(formSlice.actions.applyLimpiarMismoEquipo({ cirugia: tipoCirugia, muestrasDefault }))
+  const constants = getConstants(getState)
+  dispatch(formSlice.actions.applyLimpiarMismoEquipo({
+    cirugia: tipoCirugia,
+    muestrasDefault: constants.muestrasDefault,
+    especialidades: constants.especialidades,
+  }))
 }
 
 export const limpiarDiferenteEquipo = () => (dispatch, getState) => {
@@ -224,8 +264,9 @@ export const limpiarDiferenteEquipo = () => (dispatch, getState) => {
   dispatch(formSlice.actions.applyLimpiarDiferenteEquipo({
     cirugia: tipoCirugia,
     especialidadId,
-    cirujanos: constants.cirujanos,
+    constants,
     muestrasDefault: constants.muestrasDefault,
+    especialidades: constants.especialidades,
   }))
 }
 

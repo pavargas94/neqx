@@ -20,6 +20,7 @@ import AdminEtiquetasPage from './pages/admin/AdminEtiquetasPage'
 import AdminEspecialidadesPage from './pages/admin/AdminEspecialidadesPage'
 import AdminPlantillasPage from './pages/admin/AdminPlantillasPage'
 import AdminSeedPage from './pages/admin/AdminSeedPage'
+import AdminUsuariosPage from './pages/admin/AdminUsuariosPage'
 
 function AppRoutes() {
   const dispatch = useDispatch()
@@ -87,6 +88,7 @@ function AppRoutes() {
         <Route path="muestras" element={<Navigate to="/admin/cirujanos" replace />} />
         <Route path="especialidades" element={<AdminEspecialidadesPage />} />
         <Route path="plantillas" element={<AdminPlantillasPage />} />
+        <Route path="usuarios" element={<AdminUsuariosPage />} />
         <Route path="poblar-datos" element={<AdminSeedPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

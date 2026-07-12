@@ -14,7 +14,7 @@
  *   2. getCache() devuelve Firestore si está disponible, o DEFAULT_PLANTILLAS.
  *   3. El generador de notas llama getCache() sincrónicamente.
  */
-import { collection, doc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDocs, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { COLLECTIONS } from '../data/firestoreCollections'
 import { DEFAULT_PLANTILLAS } from '../data/plantillasDefaults'
 import { getFirestoreDb, isFirebaseConfigured } from './firebase'
@@ -90,6 +90,21 @@ export const plantillasService = {
     })
     if (_cache) {
       _cache[key] = rest
+    }
+  },
+
+  /**
+   * Elimina una plantilla de procedimiento de Firestore y del cache.
+   * No puede eliminar documentos de sistema (_anestesia, _config).
+   * @param {string} key - Clave del procedimiento a eliminar
+   */
+  async delete(key) {
+    if (!isFirebaseConfigured()) throw new Error('Firebase no está configurado.')
+    if (key.startsWith('_')) throw new Error('No se pueden eliminar documentos de sistema.')
+    const db = getFirestoreDb()
+    await deleteDoc(doc(db, COLLECTIONS.PLANTILLAS, key))
+    if (_cache) {
+      delete _cache[key]
     }
   },
 

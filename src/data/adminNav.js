@@ -27,6 +27,14 @@ export const NAV_MENUS = [
     ],
   },
   {
+    id: 'sistema',
+    label: 'Sistema',
+    adminOnly: true,
+    items: [
+      { id: 'usuarios', label: 'Usuarios', path: '/admin/usuarios' },
+    ],
+  },
+  {
     id: 'procedimientos',
     label: 'Procedimientos',
     adminOnly: true,

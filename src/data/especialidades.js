@@ -9,6 +9,7 @@ export const ESPECIALIDADES = [
     description: 'Procedimientos de cirugía general.',
     cirugias: [
       { key: 'colelap', label: 'Colecistectomía laparoscópica', formKey: 'colelap' },
+      { key: 'hernias', label: 'Hernias', formKey: 'hernias' },
     ],
   },
   {

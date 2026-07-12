@@ -1,13 +1,49 @@
 import { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { especialidadesService } from '../../services/especialidadesService'
+import { fetchFormConstants } from '../../store/constantsSlice'
+import ProcedimientoOpcionesEditor from '../../components/admin/ProcedimientoOpcionesEditor'
 
 function slugifyId(text) {
   return (text || '').trim().toLowerCase().replace(/\s+/g, '_')
 }
 
 function emptyProcedimiento() {
-  return { key: '', nombre: '', labelCirujano: '', muestraDefault: '', activo: true }
+  return {
+    key: '',
+    nombre: '',
+    labelCirujano: '',
+    muestraDefault: '',
+    activo: true,
+    opciones: [],
+    flags: {},
+  }
+}
+
+function normalizeProcedimientoPayload(p) {
+  return {
+    key: p.key?.trim() || '',
+    nombre: p.nombre?.trim() || '',
+    labelCirujano: p.labelCirujano?.trim() || '',
+    muestraDefault: p.muestraDefault?.trim() || '',
+    activo: p.activo !== false,
+    opciones: (p.opciones || []).map(o => ({
+      id: o.id?.trim() || '',
+      label: o.label?.trim() || '',
+      tipo: o.tipo || 'select',
+      grupo: o.grupo?.trim() || '',
+      orden: o.orden ?? 0,
+      default: o.default ?? '',
+      placeholder: o.placeholder?.trim() || '',
+      opciones: (o.opciones || []).map(item => ({
+        value: item.value?.trim() || '',
+        label: item.label?.trim() || '',
+        texto: item.texto?.trim() || '',
+      })).filter(item => item.value && item.label),
+    })).filter(o => o.id && o.label),
+    flags: p.flags || {},
+  }
 }
 
 function emptyEspecialidad(orden) {
@@ -23,49 +59,68 @@ function emptyEspecialidad(orden) {
 }
 
 function ProcedimientoRow({ proc, onChange, onRemove }) {
+  const [showOpciones, setShowOpciones] = useState(false)
+
   return (
-    <div className="admin-list-row" style={{ alignItems: 'flex-start', gap: '8px' }}>
-      <div className="admin-procedimiento-grid">
-        <div className="campo">
-          <label>Key (ID)</label>
-          <input
-            type="text"
-            value={proc.key}
-            placeholder="ej: colelap"
-            onChange={e => onChange({ ...proc, key: e.target.value })}
-          />
+    <div className="admin-procedimiento-block">
+      <div className="admin-list-row" style={{ alignItems: 'flex-start', gap: '8px' }}>
+        <div className="admin-procedimiento-grid">
+          <div className="campo">
+            <label>Key (ID)</label>
+            <input
+              type="text"
+              value={proc.key}
+              placeholder="ej: colelap"
+              onChange={e => onChange({ ...proc, key: e.target.value })}
+            />
+          </div>
+          <div className="campo">
+            <label>Nombre</label>
+            <input
+              type="text"
+              value={proc.nombre}
+              placeholder="ej: Colecistectomía laparoscópica"
+              onChange={e => onChange({ ...proc, nombre: e.target.value })}
+            />
+          </div>
+          <div className="campo">
+            <label>Label cirujano</label>
+            <input
+              type="text"
+              value={proc.labelCirujano}
+              placeholder="ej: Cirujano Principal:"
+              onChange={e => onChange({ ...proc, labelCirujano: e.target.value })}
+            />
+          </div>
+          <div className="campo">
+            <label>Muestra por defecto</label>
+            <input
+              type="text"
+              value={proc.muestraDefault}
+              placeholder="ej: vesícula biliar"
+              onChange={e => onChange({ ...proc, muestraDefault: e.target.value })}
+            />
+          </div>
         </div>
-        <div className="campo">
-          <label>Nombre</label>
-          <input
-            type="text"
-            value={proc.nombre}
-            placeholder="ej: Colecistectomía laparoscópica"
-            onChange={e => onChange({ ...proc, nombre: e.target.value })}
-          />
-        </div>
-        <div className="campo">
-          <label>Label cirujano</label>
-          <input
-            type="text"
-            value={proc.labelCirujano}
-            placeholder="ej: Cirujano Principal:"
-            onChange={e => onChange({ ...proc, labelCirujano: e.target.value })}
-          />
-        </div>
-        <div className="campo">
-          <label>Muestra por defecto</label>
-          <input
-            type="text"
-            value={proc.muestraDefault}
-            placeholder="ej: vesícula biliar"
-            onChange={e => onChange({ ...proc, muestraDefault: e.target.value })}
-          />
-        </div>
+        <button type="button" className="btn-admin-remove" onClick={onRemove} style={{ marginTop: '22px' }}>
+          Eliminar
+        </button>
       </div>
-      <button type="button" className="btn-admin-remove" onClick={onRemove} style={{ marginTop: '22px' }}>
-        Eliminar
+
+      <button
+        type="button"
+        className="btn-admin-secondary"
+        style={{ marginTop: '8px', fontSize: '12px' }}
+        onClick={() => setShowOpciones(prev => !prev)}
+      >
+        {showOpciones ? 'Ocultar campos adicionales' : 'Configurar campos adicionales'}
       </button>
+
+      {showOpciones && (
+        <div style={{ marginTop: '12px' }}>
+          <ProcedimientoOpcionesEditor proc={proc} onChange={onChange} />
+        </div>
+      )}
     </div>
   )
 }
@@ -209,6 +264,7 @@ function EspecialidadCard({ esp, onChange, onSave, onDelete, onCancelNew, saving
 }
 
 export default function AdminEspecialidadesPage() {
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const [especialidades, setEspecialidades] = useState([])
   const [loading, setLoading] = useState(true)
@@ -235,7 +291,10 @@ export default function AdminEspecialidadesPage() {
     return null
   }
 
-  async function handleSave(esp, idx) {
+  async function handleSave(idx) {
+    const esp = especialidades[idx]
+    if (!esp) return
+
     const error = validateEspecialidad(esp)
     if (error) {
       setActionError(error)
@@ -258,13 +317,7 @@ export default function AdminEspecialidadesPage() {
         descripcion: esp.descripcion?.trim() || '',
         rolNombre: esp.rolNombre.trim(),
         procedimientos: (esp.procedimientos || [])
-          .map(p => ({
-            key: p.key?.trim() || '',
-            nombre: p.nombre?.trim() || '',
-            labelCirujano: p.labelCirujano?.trim() || '',
-            muestraDefault: p.muestraDefault?.trim() || '',
-            activo: p.activo !== false,
-          }))
+          .map(normalizeProcedimientoPayload)
           .filter(p => p.key && p.nombre),
       }
       delete payload._isNew
@@ -272,6 +325,7 @@ export default function AdminEspecialidadesPage() {
       await especialidadesService.save(id, payload)
 
       setEspecialidades(prev => prev.map((e, i) => (i === idx ? { ...payload } : e)))
+      await dispatch(fetchFormConstants())
       setSavedId(id)
       setTimeout(() => setSavedId(null), 3000)
     } catch (e) {
@@ -335,7 +389,7 @@ export default function AdminEspecialidadesPage() {
               key={esp._isNew ? 'new-draft' : esp.id}
               esp={esp}
               onChange={updated => updateEsp(idx, updated)}
-              onSave={() => handleSave(esp, idx)}
+              onSave={() => handleSave(idx)}
               onDelete={() => handleDelete(esp)}
               onCancelNew={() => handleCancelNew(idx)}
               saving={savingId === esp.id || (esp._isNew && savingId === slugifyId(esp.id))}

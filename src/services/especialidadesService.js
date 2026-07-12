@@ -16,6 +16,9 @@ import { COLLECTIONS } from '../data/firestoreCollections'
 import { ESPECIALIDADES } from '../data/especialidades'
 import { getFirestoreDb, isFirebaseConfigured } from './firebase'
 
+import { OPCIONES_DEFAULTS, FLAGS_DEFAULTS } from '../data/procedimientoOpcionesDefaults'
+import { normalizeEspecialidadesList } from '../utils/procedimientoOpciones'
+
 const LABEL_CIRUJANO_DEFAULT = {
   colelap: 'Cirujano Principal:',
   histerectomia: 'Cirujano Ginecólogo:',
@@ -31,7 +34,7 @@ const MUESTRA_DEFAULT = {
 }
 
 function mapLocalToFirestoreShape(especialidades) {
-  return especialidades.map((esp, idx) => ({
+  return normalizeEspecialidadesList(especialidades.map((esp, idx) => ({
     id: esp.key,
     nombre: esp.label,
     descripcion: esp.description || '',
@@ -43,8 +46,10 @@ function mapLocalToFirestoreShape(especialidades) {
       labelCirujano: LABEL_CIRUJANO_DEFAULT[c.key] || '',
       muestraDefault: MUESTRA_DEFAULT[c.key] || '',
       activo: true,
+      opciones: OPCIONES_DEFAULTS[c.key] || [],
+      flags: FLAGS_DEFAULTS[c.key] || {},
     })),
-  }))
+  })))
 }
 
 export const especialidadesService = {
@@ -59,9 +64,11 @@ export const especialidadesService = {
     if (snap.empty) {
       return mapLocalToFirestoreShape(ESPECIALIDADES)
     }
-    return snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999))
+    return normalizeEspecialidadesList(
+      snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999)),
+    )
   },
 
   async save(id, data) {
@@ -79,6 +86,21 @@ export const especialidadesService = {
         labelCirujano: p.labelCirujano || '',
         muestraDefault: p.muestraDefault || '',
         activo: p.activo !== false,
+        opciones: (p.opciones || []).map(o => ({
+          id: o.id || '',
+          label: o.label || '',
+          tipo: o.tipo || 'select',
+          grupo: o.grupo || '',
+          orden: o.orden ?? 0,
+          default: o.default ?? '',
+          placeholder: o.placeholder || '',
+          opciones: (o.opciones || []).map(item => ({
+            value: item.value || '',
+            label: item.label || '',
+            texto: item.texto || '',
+          })),
+        })),
+        flags: p.flags || {},
       })),
       actualizadoEn: serverTimestamp(),
     })

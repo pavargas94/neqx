@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   setField, conmutarAnestesia, toggleBloqueo, activarFalloAnestesico,
 } from '../../store/formSlice'
 import { formatearEntradaHora, soloNumerosYColon } from '../../utils/timeUtils'
+import { getProcedimientoConfig } from '../../utils/procedimientoOpciones'
 
 function HoraBloqueo() {
   const dispatch = useDispatch()
@@ -68,6 +70,7 @@ function HoraGeneral() {
 export default function AnesthesiaSection() {
   const dispatch = useDispatch()
   const tipoCirugia = useSelector(s => s.form.tipoCirugia)
+  const especialidades = useSelector(s => s.constants.data.especialidades) || []
   const modalidadAnestesia = useSelector(s => s.form.modalidadAnestesia)
   const anestApl = useSelector(s => s.form.anestApl)
   const anestLocal = useSelector(s => s.form.anestLocal)
@@ -84,7 +87,12 @@ export default function AnesthesiaSection() {
 
   const field = f => e => dispatch(setField({ field: f, value: e.target.value }))
 
-  const mostrarToggle = tipoCirugia !== 'colelap'
+  const procConfig = useMemo(
+    () => getProcedimientoConfig(especialidades, tipoCirugia),
+    [especialidades, tipoCirugia],
+  )
+
+  const mostrarToggle = !procConfig.flags?.anestesiaFija
   const esRaquidea = modalidadAnestesia === 'raquidea' || modalidadAnestesia === 'fallo_raquidea'
   const esGeneral = modalidadAnestesia === 'general' || modalidadAnestesia === 'fallo_raquidea'
   const esFallo = modalidadAnestesia === 'fallo_raquidea'
@@ -139,7 +147,7 @@ export default function AnesthesiaSection() {
             </div>
           </div>
 
-          {tipoCirugia === 'reemplazo' && (
+          {procConfig.flags?.bloqueoRegional && (
             <button
               type="button"
               className="btn-toggle-anestesia"

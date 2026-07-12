@@ -25,12 +25,12 @@ function pickFields(data, keys) {
 
 function normalizeLegacyConstants(personalData = {}, medicacionData = {}, especialidadesList = []) {
   const merged = { ...personalData, ...medicacionData }
-  const cirujanosPorEspecialidad = migrateCirujanosPorEspecialidad(merged)
+  const cirujanosPorEspecialidad = migrateCirujanosPorEspecialidad(merged, especialidadesList)
   const { labelCirujano, muestrasDefault } = deriveProcedureMetadata(especialidadesList)
 
   return {
     cirujanosPorEspecialidad,
-    cirujanos: deriveCirujanosFlat(cirujanosPorEspecialidad),
+    cirujanos: deriveCirujanosFlat(cirujanosPorEspecialidad, especialidadesList),
     segundosCirujanos: deriveSegundosCirujanos(cirujanosPorEspecialidad),
     ayudantes: personalData.ayudantes ?? DEFAULT_CONSTANTS.ayudantes,
     anestesiologos: personalData.anestesiologos ?? DEFAULT_CONSTANTS.anestesiologos,

@@ -1,10 +1,39 @@
 import { horaAMinutos } from './timeUtils'
 import { plantillasService } from '../services/plantillasService'
+import { getProcedimientoConfig, isOpcionAplicable, resolveOpcionesContext } from './procedimientoOpciones'
 
 // ─── Motor de interpolación ───────────────────────────────────────────────────
 
 function interpolate(template, ctx) {
   return (template || '').replace(/\{\{(\w+)\}\}/g, (_, key) => ctx[key] ?? '')
+}
+
+/**
+ * Bloques condicionales en plantillas:
+ * - {{#si variable}}...{{/si}}           → muestra si la opción aplica (no vacía ni "no_aplica")
+ * - {{#no variable:valor}}...{{/no}}    → muestra si la variable es distinta de valor
+ */
+function processConditionals(template, ctx) {
+  if (!template) return ''
+
+  let result = template.replace(
+    /\{\{#no\s+(\w+):([^}]+)\}\}([\s\S]*?)\{\{\/no\}\}/g,
+    (_, varName, excluded, content) => {
+      const val = String(ctx[varName] ?? '').trim()
+      return val !== excluded.trim() ? content : ''
+    },
+  )
+
+  result = result.replace(
+    /\{\{#si\s+(\w+)\}\}([\s\S]*?)\{\{\/si\}\}/g,
+    (_, varName, content) => (isOpcionAplicable(ctx[varName]) ? content : ''),
+  )
+
+  return result
+}
+
+function renderPlantilla(template, ctx) {
+  return interpolate(processConditionals(template, ctx), ctx)
 }
 
 /**
@@ -75,13 +104,30 @@ function buildStringAnestBloqueo({ volBloqueoLido, volBloqueoBupinest, volBloque
   return lista.length > 0 ? lista.join(' y ') : 'anestésicos locales según protocolo'
 }
 
+function applyVariableAliases(ctx) {
+  for (const [key, value] of Object.entries({ ...ctx })) {
+    if (value === undefined || value === null || value === '') continue
+    const snake = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+    if (snake !== key && ctx[snake] === undefined) {
+      ctx[snake] = value
+    }
+  }
+  return ctx
+}
+
 // ─── Contexto de interpolación ────────────────────────────────────────────────
 
-function buildContext(form, plantilla, textosDrenaje) {
+function buildContext(form, plantilla, textosDrenaje, especialidades = []) {
+  const procConfig = getProcedimientoConfig(especialidades, form.tipoCirugia)
+  const opcionesCtx = applyVariableAliases(resolveOpcionesContext(
+    form.opcionesProcedimiento || {},
+    procConfig.opciones || [],
+  ))
+
   const {
     tipoCirugia,
     sala, cirujano, ayudante, anestesiologo, instrumentador,
-    segundoCirujano, tipoReemplazo, lateralidadRodilla, casaMedica,
+    segundoCirujano,
     calibre, ubicacionVena, miembro, placaBisturi,
     hIngreso: h1, hAnestesia: h2, hLavado: h3, hInicio: h4,
     hMedicacion: h5, hFinal: h6, hTraslado: h7,
@@ -106,18 +152,20 @@ function buildContext(form, plantilla, textosDrenaje) {
   const textoDrenajeFinal = textosDrenaje?.[tipoDrenaje] ?? 'sin dejar drenajes,'
   const textoPatologiaFinal = buildTextoPatologia({ muestraPatologia, nombreMuestra })
 
-  const personaLavado = tipoCirugia === 'reemplazo'
+  const usaSegundoCirujano = procConfig.flags?.segundoCirujano
+  const personaLavado = usaSegundoCirujano
     ? (ayudante !== 'No aplica' ? ayudante : (segundoCirujano || cirujano))
     : (ayudante !== 'No aplica' ? ayudante : cirujano)
   const textoAyudante = ayudante !== 'No aplica' ? ` en conjunto con ${ayudante}` : ''
-  const tipoReemplazoTexto = tipoReemplazo === 'primario'
-    ? 'reemplazo total primario de rodilla'
-    : 'revisión protésica de rodilla'
-  const casa = casaMedica?.trim() || '---'
+
+  const lateralidadRodilla = opcionesCtx.lateralidadRodilla ?? ''
+  const tipoReemplazoTexto = opcionesCtx.tipoReemplazoTexto ?? ''
+  const casa = (opcionesCtx.casaMedica ?? '').trim() || '---'
   const sufijoAnestesiaRecup = plantilla?.sufijoAnestesia?.[modalidadAnestesia] ?? ''
   const stringAnestBloqueo = buildStringAnestBloqueo({ volBloqueoLido, volBloqueoBupinest, volBloqueoBupirop })
 
   return {
+    ...opcionesCtx,
     h1, h2, h3, h4, h5, h6, h7,
     hAnestesiaGeneral: hAnestesiaGeneral || '--:--',
     hBloqueo: hBloqueo || '--:--',
@@ -140,6 +188,7 @@ function buildContext(form, plantilla, textosDrenaje) {
     casa,
     sufijoAnestesiaRecup,
     stringAnestBloqueo,
+    tipoCirugia,
   }
 }
 
@@ -168,14 +217,15 @@ export function validarFormulario(form) {
   return null
 }
 
-export function generarReporte(form) {
+export function generarReporte(form, especialidades = []) {
   const plantillas = plantillasService.getCache()
   const plantilla = plantillas[form.tipoCirugia]
   if (!plantilla) return ''
 
+  const procConfig = getProcedimientoConfig(especialidades, form.tipoCirugia)
   const anestesiaTemplates = plantillas._anestesia ?? {}
   const textosDrenaje = plantillas._config?.textosDrenaje ?? {}
-  const ctx = buildContext(form, plantilla, textosDrenaje)
+  const ctx = buildContext(form, plantilla, textosDrenaje, especialidades)
 
   const { tipoCirugia, modalidadAnestesia, mostrarBloqueo, novedades } = form
   const bloquesNota = []
@@ -184,30 +234,31 @@ export function generarReporte(form) {
   for (const texto of Object.values(plantilla.secciones ?? {})) {
     if (!texto) continue
     const hora = extraerHoraDeTemplate(texto, ctx)
-    bloquesNota.push({ hora, texto: interpolate(texto, ctx) })
+    bloquesNota.push({ hora, texto: renderPlantilla(texto, ctx) })
   }
 
   // Bloques de anestesia
-  const esReemplazo = tipoCirugia === 'reemplazo'
-  const raquidaKey = esReemplazo ? 'raquidea_reemplazo' : 'raquidea'
+  const raquidaKey = procConfig.flags?.varianteAnestesia === 'reemplazo'
+    ? 'raquidea_reemplazo'
+    : 'raquidea'
 
   if (modalidadAnestesia === 'raquidea') {
     const t = anestesiaTemplates[raquidaKey]
-    if (t) bloquesNota.push({ hora: ctx.h2, texto: interpolate(t, ctx) })
+    if (t) bloquesNota.push({ hora: ctx.h2, texto: renderPlantilla(t, ctx) })
   } else if (modalidadAnestesia === 'general') {
     const t = anestesiaTemplates.general
-    if (t) bloquesNota.push({ hora: ctx.h2, texto: interpolate(t, ctx) })
+    if (t) bloquesNota.push({ hora: ctx.h2, texto: renderPlantilla(t, ctx) })
   } else if (modalidadAnestesia === 'fallo_raquidea') {
     const t1 = anestesiaTemplates[raquidaKey]
     const t2 = anestesiaTemplates.fallo_raquidea
-    if (t1) bloquesNota.push({ hora: ctx.h2, texto: interpolate(t1, ctx) })
-    if (t2) bloquesNota.push({ hora: ctx.hAnestesiaGeneral, texto: interpolate(t2, ctx) })
+    if (t1) bloquesNota.push({ hora: ctx.h2, texto: renderPlantilla(t1, ctx) })
+    if (t2) bloquesNota.push({ hora: ctx.hAnestesiaGeneral, texto: renderPlantilla(t2, ctx) })
   }
 
-  // Bloqueo anestésico regional (exclusivo reemplazo)
-  if (esReemplazo && mostrarBloqueo) {
+  // Bloqueo anestésico regional (según flags del procedimiento)
+  if (procConfig.flags?.bloqueoRegional && mostrarBloqueo) {
     const t = anestesiaTemplates.bloqueo
-    if (t) bloquesNota.push({ hora: ctx.hBloqueo, texto: interpolate(t, ctx) })
+    if (t) bloquesNota.push({ hora: ctx.hBloqueo, texto: renderPlantilla(t, ctx) })
   }
 
   // Novedades intraoperatorias

@@ -1,9 +1,10 @@
 import { DEFAULT_CONSTANTS } from '../data/constants'
-import { ESPECIALIDADES } from '../data/especialidades'
 import { TIPOS_PERSONAL } from '../data/firestoreCollections'
 import {
+  buildEmptyCirujanosPorEspecialidad,
   deriveCirujanosFlat,
   deriveSegundosCirujanos,
+  resolveEspecialidadesConfig,
 } from './cirujanosHelpers'
 
 const CATEGORIA_POR_CIRUGIA = {
@@ -12,31 +13,24 @@ const CATEGORIA_POR_CIRUGIA = {
   artroscopia: 'Artroscopista',
 }
 
-const FORM_PROCEDURE_KEYS = new Set(['colelap', 'histerectomia', 'reemplazo'])
+function dedupeCirujanosPorEspecialidad(data, especialidadesList) {
+  const config = resolveEspecialidadesConfig(especialidadesList)
+  const result = buildEmptyCirujanosPorEspecialidad(config)
 
-function emptyEspecialidadLists() {
-  return Object.fromEntries(
-    ESPECIALIDADES.map(esp => [
-      esp.key,
-      Object.fromEntries(esp.cirugias.map(c => [c.key, []])),
-    ]),
-  )
-}
-
-function dedupeLists(data) {
-  const result = emptyEspecialidadLists()
-  for (const esp of ESPECIALIDADES) {
-    for (const cirugia of esp.cirugias) {
-      result[esp.key][cirugia.key] = [
-        ...new Set((data[esp.key]?.[cirugia.key] || []).map(s => s.trim()).filter(Boolean)),
+  for (const esp of config) {
+    for (const proc of esp.procedimientos || []) {
+      result[esp.id][proc.key] = [
+        ...new Set((data[esp.id]?.[proc.key] || []).map(s => s.trim()).filter(Boolean)),
       ]
     }
   }
+
   return result
 }
 
-export function buildCirujanosPorEspecialidadFromPersonal(personalDocs) {
-  const result = emptyEspecialidadLists()
+export function buildCirujanosPorEspecialidadFromPersonal(personalDocs, especialidadesList) {
+  const config = resolveEspecialidadesConfig(especialidadesList)
+  const result = buildEmptyCirujanosPorEspecialidad(config)
   const cirujanos = personalDocs.filter(p => p.tipo === TIPOS_PERSONAL.CIRUJANO)
 
   for (const item of cirujanos) {
@@ -44,26 +38,29 @@ export function buildCirujanosPorEspecialidadFromPersonal(personalDocs) {
     const nombre = item.nombre?.trim()
     if (!nombre || !espKey || !result[espKey]) continue
 
-    const categorias = item.categorias || []
-
-    if (espKey === 'general') {
-      result.general.colelap.push(nombre)
-    } else if (espKey === 'ginecologia') {
-      result.ginecologia.histerectomia.push(nombre)
-    } else if (espKey === 'ortopedia') {
-      if (categorias.includes('Reemplazo articular')) {
+    if (espKey === 'ortopedia') {
+      const categorias = item.categorias || []
+      if (categorias.includes('Reemplazo articular') && result.ortopedia.reemplazo) {
         result.ortopedia.reemplazo.push(nombre)
       }
-      if (categorias.includes('Segundo Cirujano')) {
+      if (categorias.includes('Segundo Cirujano') && result.ortopedia.segundoCirujano) {
         result.ortopedia.segundoCirujano.push(nombre)
       }
-      if (categorias.includes('Artroscopista')) {
+      if (categorias.includes('Artroscopista') && result.ortopedia.artroscopia) {
         result.ortopedia.artroscopia.push(nombre)
+      }
+    } else {
+      const esp = config.find(e => e.id === espKey)
+      for (const proc of esp?.procedimientos || []) {
+        if (proc.activo === false) continue
+        if (result[espKey][proc.key]) {
+          result[espKey][proc.key].push(nombre)
+        }
       }
     }
   }
 
-  return dedupeLists(result)
+  return dedupeCirujanosPorEspecialidad(result, config)
 }
 
 export function deriveProcedureMetadata(especialidadesList) {
@@ -72,7 +69,7 @@ export function deriveProcedureMetadata(especialidadesList) {
 
   for (const esp of especialidadesList || []) {
     for (const proc of esp.procedimientos || []) {
-      if (!FORM_PROCEDURE_KEYS.has(proc.key)) continue
+      if (proc.activo === false) continue
       if (proc.labelCirujano) labelCirujano[proc.key] = proc.labelCirujano
       if (proc.muestraDefault) muestrasDefault[proc.key] = proc.muestraDefault
     }
@@ -97,12 +94,15 @@ export function buildAyudantesFromPersonal(personalDocs) {
 }
 
 export function buildFormConstantsFromPersonal(personalDocs, especialidadesList, medicacionData = {}) {
-  const cirujanosPorEspecialidad = buildCirujanosPorEspecialidadFromPersonal(personalDocs)
+  const cirujanosPorEspecialidad = buildCirujanosPorEspecialidadFromPersonal(
+    personalDocs,
+    especialidadesList,
+  )
   const { labelCirujano, muestrasDefault } = deriveProcedureMetadata(especialidadesList)
 
   return {
     cirujanosPorEspecialidad,
-    cirujanos: deriveCirujanosFlat(cirujanosPorEspecialidad),
+    cirujanos: deriveCirujanosFlat(cirujanosPorEspecialidad, especialidadesList),
     segundosCirujanos: deriveSegundosCirujanos(cirujanosPorEspecialidad),
     ayudantes: buildAyudantesFromPersonal(personalDocs),
     anestesiologos: personalDocs
@@ -125,24 +125,25 @@ export function buildFormConstantsFromPersonal(personalDocs, especialidadesList,
  * Convierte el draft del editor legado (cirujanosPorEspecialidad)
  * al mapa de documentos cirujano deseado en personal/.
  */
-export function buildDesiredCirujanosMap(cirujanosPorEspecialidad) {
+export function buildDesiredCirujanosMap(cirujanosPorEspecialidad, especialidadesList) {
   const desired = new Map()
+  const config = resolveEspecialidadesConfig(especialidadesList)
 
-  for (const esp of ESPECIALIDADES) {
-    for (const cirugia of esp.cirugias) {
-      const nombres = cirujanosPorEspecialidad[esp.key]?.[cirugia.key] || []
-      const categoria = CATEGORIA_POR_CIRUGIA[cirugia.key]
+  for (const esp of config) {
+    for (const proc of esp.procedimientos || []) {
+      const nombres = cirujanosPorEspecialidad[esp.id]?.[proc.key] || []
+      const categoria = CATEGORIA_POR_CIRUGIA[proc.key]
 
       for (const nombreRaw of nombres) {
         const nombre = nombreRaw.trim()
         if (!nombre) continue
 
-        const mapKey = `${esp.key}::${nombre}`
+        const mapKey = `${esp.id}::${nombre}`
         const existing = desired.get(mapKey) || {
           nombre,
           tipo: TIPOS_PERSONAL.CIRUJANO,
-          rol: esp.label,
-          especialidadId: esp.key,
+          rol: esp.rolNombre || esp.nombre || '',
+          especialidadId: esp.id,
           categorias: [],
           activo: true,
         }

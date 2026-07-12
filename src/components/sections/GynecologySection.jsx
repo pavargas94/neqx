@@ -1,13 +1,21 @@
+import { useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { setField } from '../../store/formSlice'
+import { getProcedimientoConfig } from '../../utils/procedimientoOpciones'
 
 export default function GynecologySection() {
   const dispatch = useDispatch()
   const tipoCirugia = useSelector(s => s.form.tipoCirugia)
   const sondaFoley = useSelector(s => s.form.sondaFoley)
   const caracteristicaOrina = useSelector(s => s.form.caracteristicaOrina)
+  const especialidades = useSelector(s => s.constants.data.especialidades) || []
 
-  if (tipoCirugia !== 'histerectomia') return null
+  const procConfig = useMemo(
+    () => getProcedimientoConfig(especialidades, tipoCirugia),
+    [especialidades, tipoCirugia],
+  )
+
+  if (!procConfig.flags?.seccionGinecologia) return null
 
   const field = f => e => dispatch(setField({ field: f, value: e.target.value }))
 
@@ -18,7 +26,7 @@ export default function GynecologySection() {
         <div className="campo">
           <label>Sonda Vesical Foley:</label>
           <select value={sondaFoley} onChange={field('sondaFoley')}>
-            {['12 Fr', '14 Fr', '16 Fr', '18 Fr', '20 Fr'].map(v => (
+            {['14 Fr', '16 Fr', '18 Fr', '20 Fr'].map(v => (
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
@@ -27,8 +35,8 @@ export default function GynecologySection() {
           <label>Característica de la Orina:</label>
           <select value={caracteristicaOrina} onChange={field('caracteristicaOrina')}>
             <option value="clara">Clara</option>
-            <option value="colúrica">Colúrica</option>
-            <option value="hematúrica">Hematúrica</option>
+            <option value="concentrada">Concentrada</option>
+            <option value="hemática">Hemática</option>
           </select>
         </div>
       </div>

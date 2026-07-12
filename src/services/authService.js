@@ -4,7 +4,7 @@ import {
   signOut as firebaseSignOut,
 } from 'firebase/auth'
 import { getFirebaseAuth, isFirebaseConfigured } from './firebase'
-import { resolveUserProfile } from './userService'
+import { resolveUserProfile, USER_DISABLED_ERROR } from './userService'
 import { ROLES } from '../utils/roles'
 
 function mapFirebaseUserOffline(firebaseUser) {
@@ -61,7 +61,12 @@ export const authService = {
       try {
         const user = await resolveUserProfile(firebaseUser)
         callback(user)
-      } catch {
+      } catch (error) {
+        if (error?.code === USER_DISABLED_ERROR || error?.message === USER_DISABLED_ERROR) {
+          await firebaseSignOut(auth)
+          callback(null)
+          return
+        }
         callback(mapFirebaseUserOffline(firebaseUser))
       }
     })
@@ -80,6 +85,11 @@ export const authService = {
       const credential = await signInWithEmailAndPassword(auth, email.trim(), password)
       return await resolveUserProfile(credential.user)
     } catch (error) {
+      if (error?.code === USER_DISABLED_ERROR || error?.message === USER_DISABLED_ERROR) {
+        const auth = getFirebaseAuth()
+        await firebaseSignOut(auth)
+        throw new Error('Tu cuenta ha sido deshabilitada. Contacta al administrador.')
+      }
       throw new Error(mapFirebaseError(error))
     }
   },

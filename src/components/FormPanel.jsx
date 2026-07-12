@@ -17,6 +17,7 @@ import EventsSection from './sections/EventsSection'
 export default function FormPanel() {
   const dispatch = useDispatch()
   const form = useSelector(s => s.form)
+  const especialidades = useSelector(s => s.constants.data.especialidades) || []
 
   function handleGenerar() {
     const error = validarFormulario(form)
@@ -24,7 +25,7 @@ export default function FormPanel() {
       alert(error)
       return
     }
-    const nota = generarReporte(form)
+    const nota = generarReporte(form, especialidades)
     dispatch(setNota(nota))
   }
 

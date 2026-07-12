@@ -9,6 +9,7 @@
 
 export const DEFAULT_PLANTILLAS = {
   colelap: {
+    label: 'Colecistectomía laparoscópica',
     procedimientoKey: 'colelap',
     sufijoAnestesia: {
       raquidea: 'regional raquídea',
@@ -26,6 +27,7 @@ export const DEFAULT_PLANTILLAS = {
   },
 
   histerectomia: {
+    label: 'Histerectomía abdominal',
     procedimientoKey: 'histerectomia',
     sufijoAnestesia: {
       raquidea: 'regional raquídea',
@@ -43,6 +45,7 @@ export const DEFAULT_PLANTILLAS = {
   },
 
   reemplazo: {
+    label: 'Reemplazo articular',
     procedimientoKey: 'reemplazo',
     sufijoAnestesia: {
       raquidea: 'neuroaxial',

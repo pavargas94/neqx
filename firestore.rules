@@ -26,6 +26,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if request.auth.uid == userId
         && request.resource.data.keys().hasAll(['email', 'role'])
+        && (!('enabled' in request.resource.data) || request.resource.data.enabled == true)
         && (
           request.resource.data.role == 'enfermeria'
           || (request.resource.data.role == 'admin' && isBootstrapAdmin())
