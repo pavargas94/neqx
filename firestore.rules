@@ -22,11 +22,16 @@ service cloud.firestore {
         && request.auth.token.email in get(/databases/$(database)/documents/config/bootstrapAdmins).data.emails;
     }
 
+    function isValidAppRole(role) {
+      return role == 'admin' || role == 'enfermeria';
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if (
         request.auth.uid == userId
         && request.resource.data.keys().hasAll(['email', 'role'])
+        && isValidAppRole(request.resource.data.role)
         && (!('enabled' in request.resource.data) || request.resource.data.enabled == true)
         && (
           request.resource.data.role == 'enfermeria'
@@ -34,8 +39,8 @@ service cloud.firestore {
         )
       ) || (
         isAdmin()
-        && request.resource.data.keys().hasAll(['email', 'role', 'displayName'])
-        && request.resource.data.role in ['admin', 'enfermeria']
+        && request.resource.data.keys().hasAll(['email', 'role'])
+        && isValidAppRole(request.resource.data.role)
         && (!('enabled' in request.resource.data) || request.resource.data.enabled is bool)
       );
       allow update: if isAdmin() || (

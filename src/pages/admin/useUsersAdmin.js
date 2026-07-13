@@ -32,6 +32,9 @@ export function useUsersAdmin(currentUserId) {
   const [createSuccess, setCreateSuccess] = useState(false)
   const [deletingUid, setDeletingUid] = useState(null)
   const [deleteError, setDeleteError] = useState(null)
+  const [linking, setLinking] = useState(false)
+  const [linkError, setLinkError] = useState(null)
+  const [linkSuccess, setLinkSuccess] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -64,9 +67,19 @@ export function useUsersAdmin(currentUserId) {
     return () => clearTimeout(timer)
   }, [createSuccess])
 
-  function addUser(user) {
+  useEffect(() => {
+    if (!linkSuccess) return
+    const timer = setTimeout(() => setLinkSuccess(false), 3000)
+    return () => clearTimeout(timer)
+  }, [linkSuccess])
+
+  function upsertUser(user) {
     setUsers(prev => {
-      const next = [...prev, user].sort((a, b) => {
+      const exists = prev.some(item => item.uid === user.uid)
+      const next = (exists
+        ? prev.map(item => (item.uid === user.uid ? user : item))
+        : [...prev, user]
+      ).sort((a, b) => {
         const emailCompare = a.email.localeCompare(b.email, 'es')
         if (emailCompare !== 0) return emailCompare
         return a.displayName.localeCompare(b.displayName, 'es')
@@ -83,7 +96,7 @@ export function useUsersAdmin(currentUserId) {
 
     try {
       const created = await userAdminService.createUser(formData)
-      addUser(created)
+      upsertUser(created)
       setCreateSuccess(true)
       return created
     } catch (error) {
@@ -92,6 +105,29 @@ export function useUsersAdmin(currentUserId) {
     } finally {
       setCreating(false)
     }
+  }
+
+  async function handleLinkUser(formData) {
+    setLinking(true)
+    setLinkError(null)
+    setLinkSuccess(false)
+
+    try {
+      const linked = await userAdminService.linkUserProfile(formData)
+      upsertUser(linked)
+      setLinkSuccess(true)
+      return linked
+    } catch (error) {
+      setLinkError(error.message || 'No se pudo vincular el usuario.')
+      throw error
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  function clearLinkStatus() {
+    setLinkError(null)
+    setLinkSuccess(false)
   }
 
   function clearCreateStatus() {
@@ -229,6 +265,9 @@ export function useUsersAdmin(currentUserId) {
     saveSuccess,
     createError,
     createSuccess,
+    linking,
+    linkError,
+    linkSuccess,
     deletingUid,
     deleteError,
     hasChanges,
@@ -236,8 +275,10 @@ export function useUsersAdmin(currentUserId) {
     handleSave,
     handleCancel,
     handleCreateUser,
+    handleLinkUser,
     handleDeleteUser,
     clearCreateStatus,
+    clearLinkStatus,
     clearDeleteError,
     reload: load,
   }

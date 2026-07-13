@@ -24,7 +24,35 @@ export function mapCallableError(error, fallback = 'No se pudo completar la oper
     return error.message
   }
 
-  return callableMessages[error?.code] || error?.message || fallback
+  if (error?.code === 'functions/already-exists' && error?.message) {
+    return error.message
+  }
+
+  if (error?.code === 'functions/invalid-argument' && error?.message) {
+    return error.message
+  }
+
+  return callableMessages[error?.code]
+    || (/^internal$/i.test(error?.message || '') ? callableMessages['functions/internal'] : null)
+    || error?.message
+    || fallback
+}
+
+export function validateLinkUserInput({ email, password, confirmPassword, displayName, role }) {
+  const trimmedEmail = email?.trim() || ''
+  const trimmedName = displayName?.trim() || ''
+
+  if (!trimmedEmail) return 'Ingresa el correo electrónico del usuario.'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return 'El correo electrónico no es válido.'
+  }
+  if (!password) return 'Ingresa la contraseña de la cuenta.'
+  if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.'
+  if (password !== confirmPassword) return 'Las contraseñas no coinciden.'
+  if (!role) return 'Selecciona un rol para el usuario.'
+  if (trimmedName.length > 80) return 'El nombre no puede superar 80 caracteres.'
+
+  return null
 }
 
 export function validateNewUserInput({ email, password, confirmPassword, displayName, role }) {

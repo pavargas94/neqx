@@ -901,6 +901,16 @@ button.btn-admin-secondary:disabled {
   margin-bottom: 16px;
 }
 
+.admin-users-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-users-link {
+  border-color: #bbdefb;
+}
+
 .admin-users-search {
   width: 100%;
   max-width: 420px;

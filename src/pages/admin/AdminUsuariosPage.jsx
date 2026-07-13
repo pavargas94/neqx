@@ -29,6 +29,138 @@ function emptyCreateForm() {
   }
 }
 
+function emptyLinkForm() {
+  return {
+    email: '',
+    password: '',
+    confirmPassword: '',
+    displayName: '',
+    role: ROLES.ENFERMERIA,
+    enabled: true,
+  }
+}
+
+function LinkUserForm({ linking, linkError, linkSuccess, onSubmit, onCancel }) {
+  const [form, setForm] = useState(emptyLinkForm)
+
+  function updateField(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    try {
+      await onSubmit(form)
+      setForm(emptyLinkForm())
+    } catch {
+      // El error se muestra desde el hook.
+    }
+  }
+
+  return (
+    <form className="admin-users-create admin-users-link" onSubmit={handleSubmit}>
+      <div className="admin-users-create-header">
+        <h3>Vincular cuenta existente</h3>
+        <p className="admin-editor-desc">
+          Usa esta opción cuando el correo ya existe en Firebase Authentication
+          pero no aparece en la lista. Necesitas la contraseña de esa cuenta
+          para completar su perfil en la aplicación.
+        </p>
+      </div>
+
+      {linkError && <p className="admin-error">{linkError}</p>}
+      {linkSuccess && <p className="admin-success">Usuario vinculado correctamente.</p>}
+
+      <div className="admin-users-create-grid">
+        <div className="campo">
+          <label htmlFor="link-user-email">Correo electrónico</label>
+          <input
+            id="link-user-email"
+            type="email"
+            value={form.email}
+            placeholder="usuario@hospital.com"
+            onChange={e => updateField('email', e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="link-user-display-name">Nombre para mostrar</label>
+          <input
+            id="link-user-display-name"
+            type="text"
+            value={form.displayName}
+            placeholder="Opcional"
+            onChange={e => updateField('displayName', e.target.value)}
+          />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="link-user-password">Contraseña de la cuenta</label>
+          <input
+            id="link-user-password"
+            type="password"
+            value={form.password}
+            placeholder="La misma que se usó al crearla"
+            onChange={e => updateField('password', e.target.value)}
+            required
+            minLength={6}
+          />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="link-user-confirm-password">Confirmar contraseña</label>
+          <input
+            id="link-user-confirm-password"
+            type="password"
+            value={form.confirmPassword}
+            placeholder="Repite la contraseña"
+            onChange={e => updateField('confirmPassword', e.target.value)}
+            required
+            minLength={6}
+          />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="link-user-role">Rol</label>
+          <select
+            id="link-user-role"
+            className="admin-users-select"
+            value={form.role}
+            onChange={e => updateField('role', e.target.value)}
+          >
+            {ROLE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="campo admin-users-create-enabled">
+          <label className="admin-users-toggle">
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={e => updateField('enabled', e.target.checked)}
+            />
+            <span>Cuenta activa</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="admin-actions-buttons">
+        <button type="button" className="btn-admin-secondary" onClick={onCancel} disabled={linking}>
+          Cancelar
+        </button>
+        <button type="submit" className="btn-admin-save" disabled={linking}>
+          {linking ? 'Vinculando…' : 'Vincular usuario'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 function CreateUserForm({ creating, createError, createSuccess, onSubmit, onCancel }) {
   const [form, setForm] = useState(emptyCreateForm)
 
@@ -211,6 +343,7 @@ export default function AdminUsuariosPage() {
   const currentUser = useSelector(state => state.auth.user)
   const [search, setSearch] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [showLinkForm, setShowLinkForm] = useState(false)
 
   const {
     users,
@@ -221,12 +354,17 @@ export default function AdminUsuariosPage() {
     saveSuccess,
     createError,
     createSuccess,
+    linking,
+    linkError,
+    linkSuccess,
     hasChanges,
     updateUser,
     handleSave,
     handleCancel,
     handleCreateUser,
+    handleLinkUser,
     clearCreateStatus,
+    clearLinkStatus,
     handleDeleteUser,
     deletingUid,
     deleteError,
@@ -249,12 +387,26 @@ export default function AdminUsuariosPage() {
 
   function openCreateForm() {
     clearCreateStatus()
+    clearLinkStatus()
+    setShowLinkForm(false)
     setShowCreateForm(true)
   }
 
   function closeCreateForm() {
     clearCreateStatus()
     setShowCreateForm(false)
+  }
+
+  function openLinkForm() {
+    clearLinkStatus()
+    clearCreateStatus()
+    setShowCreateForm(false)
+    setShowLinkForm(true)
+  }
+
+  function closeLinkForm() {
+    clearLinkStatus()
+    setShowLinkForm(false)
   }
 
   async function handleDelete(user) {
@@ -297,12 +449,27 @@ export default function AdminUsuariosPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        {!showCreateForm && (
-          <button type="button" className="btn-admin-add" onClick={openCreateForm}>
-            + Nuevo usuario
-          </button>
+        {!showCreateForm && !showLinkForm && (
+          <div className="admin-users-toolbar-actions">
+            <button type="button" className="btn-admin-secondary" onClick={openLinkForm}>
+              Vincular cuenta existente
+            </button>
+            <button type="button" className="btn-admin-add" onClick={openCreateForm}>
+              + Nuevo usuario
+            </button>
+          </div>
         )}
       </div>
+
+      {showLinkForm && (
+        <LinkUserForm
+          linking={linking}
+          linkError={linkError}
+          linkSuccess={linkSuccess}
+          onSubmit={handleLinkUser}
+          onCancel={closeLinkForm}
+        />
+      )}
 
       {showCreateForm && (
         <CreateUserForm
@@ -322,7 +489,8 @@ export default function AdminUsuariosPage() {
         <div className="admin-users-empty">
           <p>No hay usuarios registrados todavía.</p>
           <p className="admin-editor-desc">
-            Usa el botón «Nuevo usuario» para crear la primera cuenta desde la aplicación.
+            Si el correo ya existe en Firebase Authentication, usa
+            «Vincular cuenta existente». Si no, crea uno con «Nuevo usuario».
           </p>
         </div>
       ) : (
