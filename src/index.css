@@ -893,6 +893,11 @@ button.btn-admin-secondary:disabled {
 }
 
 .admin-users-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
@@ -1009,6 +1014,10 @@ button.btn-admin-secondary:disabled {
   white-space: nowrap;
 }
 
+.admin-users-actions {
+  white-space: nowrap;
+}
+
 .admin-users-no-results,
 .admin-users-empty {
   padding: 24px;
@@ -1018,6 +1027,38 @@ button.btn-admin-secondary:disabled {
 
 .admin-users-empty p {
   margin: 0 0 8px;
+}
+
+.admin-users-create {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+}
+
+.admin-users-create-header h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #212121;
+}
+
+.admin-users-create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.admin-users-create-enabled {
+  display: flex;
+  align-items: flex-end;
+}
+
+@media (max-width: 768px) {
+  .admin-users-create-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-personal-card {

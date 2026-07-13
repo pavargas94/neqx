@@ -27,6 +27,11 @@ export function useUsersAdmin(currentUserId) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState(null)
+  const [createSuccess, setCreateSuccess] = useState(false)
+  const [deletingUid, setDeletingUid] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,6 +57,83 @@ export function useUsersAdmin(currentUserId) {
     const timer = setTimeout(() => setSaveSuccess(false), 3000)
     return () => clearTimeout(timer)
   }, [saveSuccess])
+
+  useEffect(() => {
+    if (!createSuccess) return
+    const timer = setTimeout(() => setCreateSuccess(false), 3000)
+    return () => clearTimeout(timer)
+  }, [createSuccess])
+
+  function addUser(user) {
+    setUsers(prev => {
+      const next = [...prev, user].sort((a, b) => {
+        const emailCompare = a.email.localeCompare(b.email, 'es')
+        if (emailCompare !== 0) return emailCompare
+        return a.displayName.localeCompare(b.displayName, 'es')
+      })
+      setInitialUsers(cloneUsers(next))
+      return next
+    })
+  }
+
+  async function handleCreateUser(formData) {
+    setCreating(true)
+    setCreateError(null)
+    setCreateSuccess(false)
+
+    try {
+      const created = await userAdminService.createUser(formData)
+      addUser(created)
+      setCreateSuccess(true)
+      return created
+    } catch (error) {
+      setCreateError(error.message || 'No se pudo crear el usuario.')
+      throw error
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  function clearCreateStatus() {
+    setCreateError(null)
+    setCreateSuccess(false)
+  }
+
+  function removeUser(uid) {
+    setUsers(prev => {
+      const next = prev.filter(user => user.uid !== uid)
+      setInitialUsers(cloneUsers(next))
+      return next
+    })
+  }
+
+  async function handleDeleteUser(uid) {
+    const validationError = userAdminService.validateDelete(uid, { currentUserId, users })
+    if (validationError) {
+      setDeleteError(validationError)
+      return false
+    }
+
+    setDeletingUid(uid)
+    setDeleteError(null)
+    setSaveError(null)
+    setSaveSuccess(false)
+
+    try {
+      await userAdminService.deleteUser(uid, { currentUserId, users })
+      removeUser(uid)
+      return true
+    } catch (error) {
+      setDeleteError(error.message || 'No se pudo eliminar el usuario.')
+      return false
+    } finally {
+      setDeletingUid(null)
+    }
+  }
+
+  function clearDeleteError() {
+    setDeleteError(null)
+  }
 
   function updateUser(uid, changes) {
     setUsers(prev => prev.map(user => (
@@ -142,12 +224,21 @@ export function useUsersAdmin(currentUserId) {
     users,
     loading,
     saving,
+    creating,
     saveError,
     saveSuccess,
+    createError,
+    createSuccess,
+    deletingUid,
+    deleteError,
     hasChanges,
     updateUser,
     handleSave,
     handleCancel,
+    handleCreateUser,
+    handleDeleteUser,
+    clearCreateStatus,
+    clearDeleteError,
     reload: load,
   }
 }

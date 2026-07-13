@@ -1,7 +1,10 @@
+import { createUserWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
-import { getFirestoreDb, isFirebaseConfigured } from './firebase'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+import { getFirebaseApp, getFirestoreDb, getSecondaryFirebaseAuth, isFirebaseConfigured } from './firebase'
 import { COLLECTIONS } from '../data/firestoreCollections'
 import { ROLES } from '../utils/roles'
+import { mapFirebaseAuthError, mapCallableError, validateNewUserInput } from '../utils/firebaseAuthErrors'
 
 const DEFAULT_BOOTSTRAP_ADMINS = ['andresvhdez1994@gmail.com']
 export const USER_DISABLED_ERROR = 'USER_DISABLED'
@@ -131,5 +134,97 @@ export const userAdminService = {
 
     const db = getFirestoreDb()
     await updateDoc(doc(db, COLLECTIONS.USERS, uid), payload)
+  },
+
+  async createUser({ email, password, confirmPassword, displayName, role, enabled = true }) {
+    if (!isFirebaseConfigured()) {
+      throw new Error('Firebase no está configurado.')
+    }
+
+    const validationError = validateNewUserInput({
+      email,
+      password,
+      confirmPassword,
+      displayName,
+      role,
+    })
+    if (validationError) {
+      throw new Error(validationError)
+    }
+
+    const trimmedEmail = email.trim().toLowerCase()
+    const trimmedName = displayName?.trim() || trimmedEmail.split('@')[0]
+    const secondaryAuth = getSecondaryFirebaseAuth()
+
+    let credential
+    try {
+      credential = await createUserWithEmailAndPassword(secondaryAuth, trimmedEmail, password)
+    } catch (error) {
+      throw new Error(mapFirebaseAuthError(error, 'No se pudo crear la cuenta de acceso.'))
+    } finally {
+      try {
+        await firebaseSignOut(secondaryAuth)
+      } catch {
+        // La sesión secundaria no debe afectar al administrador.
+      }
+    }
+
+    const uid = credential.user.uid
+    const profile = {
+      email: trimmedEmail,
+      displayName: trimmedName,
+      role: role || ROLES.ENFERMERIA,
+      enabled: enabled !== false,
+      createdAt: new Date().toISOString(),
+    }
+
+    const db = getFirestoreDb()
+    try {
+      await setDoc(doc(db, COLLECTIONS.USERS, uid), profile)
+    } catch (error) {
+      throw new Error(
+        error.message
+        || 'La cuenta de acceso se creó, pero no se pudo guardar el perfil en Firestore.',
+      )
+    }
+
+    return mapUserDoc(uid, profile)
+  },
+
+  validateDelete(uid, { currentUserId, users }) {
+    if (!uid) return 'Usuario inválido.'
+    if (uid === currentUserId) return 'No puedes eliminar tu propia cuenta.'
+
+    const target = users.find(user => user.uid === uid)
+    if (!target) return 'El usuario no existe.'
+
+    if (target.enabled && target.role === ROLES.ADMIN) {
+      const activeAdmins = users.filter(user => user.enabled && user.role === ROLES.ADMIN)
+      if (activeAdmins.length <= 1) {
+        return 'No puedes eliminar el último administrador activo.'
+      }
+    }
+
+    return null
+  },
+
+  async deleteUser(uid, { currentUserId, users }) {
+    if (!isFirebaseConfigured()) {
+      throw new Error('Firebase no está configurado.')
+    }
+
+    const validationError = userAdminService.validateDelete(uid, { currentUserId, users })
+    if (validationError) {
+      throw new Error(validationError)
+    }
+
+    const functions = getFunctions(getFirebaseApp())
+    const deleteAppUser = httpsCallable(functions, 'deleteAppUser')
+
+    try {
+      await deleteAppUser({ uid })
+    } catch (error) {
+      throw new Error(mapCallableError(error, 'No se pudo eliminar el usuario.'))
+    }
   },
 }

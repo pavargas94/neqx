@@ -24,13 +24,20 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if request.auth.uid == userId
+      allow create: if (
+        request.auth.uid == userId
         && request.resource.data.keys().hasAll(['email', 'role'])
         && (!('enabled' in request.resource.data) || request.resource.data.enabled == true)
         && (
           request.resource.data.role == 'enfermeria'
           || (request.resource.data.role == 'admin' && isBootstrapAdmin())
-        );
+        )
+      ) || (
+        isAdmin()
+        && request.resource.data.keys().hasAll(['email', 'role', 'displayName'])
+        && request.resource.data.role in ['admin', 'enfermeria']
+        && (!('enabled' in request.resource.data) || request.resource.data.enabled is bool)
+      );
       allow update: if isAdmin() || (
         request.auth.uid == userId
         && resource.data.role == 'enfermeria'
@@ -38,7 +45,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/config/bootstrapAdmins)
         && request.auth.token.email in get(/databases/$(database)/documents/config/bootstrapAdmins).data.emails
       );
-      allow delete: if false;
+      allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     match /personal/{document} {

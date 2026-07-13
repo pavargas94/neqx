@@ -23,6 +23,26 @@ export function isFirebaseConfigured() {
 let app = null
 let auth = null
 let db = null
+let secondaryApp = null
+let secondaryAuth = null
+
+function ensurePrimaryApp() {
+  if (!app) {
+    app = initializeApp(firebaseConfig)
+    auth = getAuth(app)
+  }
+  return app
+}
+
+export function getFirebaseApp() {
+  if (!isFirebaseConfigured()) {
+    throw new Error(
+      'Firebase no está configurado. Crea un archivo .env.local con las variables VITE_FIREBASE_*.',
+    )
+  }
+
+  return ensurePrimaryApp()
+}
 
 export function getFirebaseAuth() {
   if (!isFirebaseConfigured()) {
@@ -32,11 +52,25 @@ export function getFirebaseAuth() {
   }
 
   if (!app) {
-    app = initializeApp(firebaseConfig)
-    auth = getAuth(app)
+    ensurePrimaryApp()
   }
 
   return auth
+}
+
+export function getSecondaryFirebaseAuth() {
+  if (!isFirebaseConfigured()) {
+    throw new Error(
+      'Firebase no está configurado. Crea un archivo .env.local con las variables VITE_FIREBASE_*.',
+    )
+  }
+
+  if (!secondaryApp) {
+    secondaryApp = initializeApp(firebaseConfig, 'Secondary')
+    secondaryAuth = getAuth(secondaryApp)
+  }
+
+  return secondaryAuth
 }
 
 export function getFirestoreDb() {
@@ -47,8 +81,7 @@ export function getFirestoreDb() {
   }
 
   if (!app) {
-    app = initializeApp(firebaseConfig)
-    auth = getAuth(app)
+    ensurePrimaryApp()
   }
 
   if (!db) {
